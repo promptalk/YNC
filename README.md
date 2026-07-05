@@ -83,12 +83,10 @@ NotebookLM으로 생성한 인포그래픽 예제 이미지 파일들입니다. 
 <summary>프롬프트 복사</summary>
 
 ```
-A high-resolution, studio-lit product photograph of a [product description]
-on a [background surface/description].
-The lighting is a [lighting setup, e.g., three-point softbox setup] to [lighting purpose].
-The camera angle is a [angle type] to showcase [specific feature].
-Ultra-realistic, with sharp focus on [key detail].
-[Aspect ratio].
+무광 검정색의 미니멀한 세라믹 커피 머그잔을 광택 처리된 콘크리트 표면 위에 놓은 고해상도 스튜디오 조명 제품 사진입니다.
+조명은 부드럽고 은은한 하이라이트를 만들고 강한 그림자를 없애기 위해 설계된 3점 소프트박스 조명 방식을 사용했습니다. 
+카메라 앵글은 깔끔한 라인을 강조하기 위해 약간 높은 45도 각도로 촬영했습니다. 
+커피에서 피어오르는 김에 초점을 맞춘 매우 사실적인 사진입니다. 정사각형 이미지입니다.
 ```
 
 </details>
