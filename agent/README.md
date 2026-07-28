@@ -36,3 +36,10 @@
 ```
 
 ---
+## JSON노드의 JSON String 내용
+
+```
+{{replace(19.data.choices[].message.content; "/```json|```/g"; "")}}
+```
+
+---
