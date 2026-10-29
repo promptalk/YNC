@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>웹훅 & API GET 요청 테스트 도구</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Pretendard', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Fira Code', 'monospace']
+                    }
+                }
+            }
+        };
+    </script>
+
+    <!-- FontAwesome 아이콘 CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Marked.js 마크다운 렌더링 라이브러리 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        /* 커스텀 스크롤바 스타일링 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* 마크다운 파싱 결과 본문 스타일 */
+        .markdown-body {
+            color: #e2e8f0;
+            font-size: 0.95rem;
+            line-height: 1.65;
+        }
+        .markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
+            color: #f8fafc;
+            font-weight: 700;
+            margin-top: 1.2rem;
+            margin-bottom: 0.6rem;
+        }
+        .markdown-body h1 { font-size: 1.4rem; border-bottom: 1px solid #334155; padding-bottom: 0.4rem; }
+        .markdown-body h2 { font-size: 1.2rem; }
+        .markdown-body h3 { font-size: 1.05rem; }
+        .markdown-body p { margin-bottom: 0.75rem; }
+        .markdown-body p:last-child { margin-bottom: 0; }
+        .markdown-body ul { list-style-type: disc; padding-left: 1.4rem; margin-bottom: 0.75rem; }
+        .markdown-body ol { list-style-type: decimal; padding-left: 1.4rem; margin-bottom: 0.75rem; }
+        .markdown-body li { margin-bottom: 0.3rem; }
+        .markdown-body strong { color: #60a5fa; font-weight: 600; }
+        .markdown-body code {
+            background-color: #1e293b;
+            color: #f43f5e;
+            padding: 0.15rem 0.4rem;
+            border-radius: 0.25rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85em;
+        }
+        .markdown-body pre {
+            background-color: #0f172a;
+            border: 1px solid #1e293b;
+            padding: 0.85rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin-bottom: 0.75rem;
+        }
+        .markdown-body pre code {
+            background: transparent;
+            color: #cbd5e1;
+            padding: 0;
+        }
+        .markdown-body blockquote {
+            border-left: 3px solid #3b82f6;
+            padding-left: 0.85rem;
+            color: #94a3b8;
+            font-style: italic;
+            margin-bottom: 0.75rem;
+        }
+
+        /* JSON 구문 강조 스타일 */
+        .json-key { color: #38bdf8; }
+        .json-string { color: #4ade80; }
+        .json-number { color: #facc15; }
+        .json-boolean { color: #f472b6; }
+        .json-null { color: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-blue-500 selection:text-white">
+
+    <!-- 상단 헤더 영역 -->
+    <header class="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                    <i class="fa-solid fa-bolt text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base sm:text-lg text-slate-100 leading-tight">웹훅 & API GET 요청 테스트 도구</h1>
+                    <p class="text-xs text-slate-400">웹훅 엔드포인트 검증 및 마크다운 응답 자동 파싱 테스터</p>
+                </div>
+            </div>
+
+            <!-- 상태 지표 -->
+            <div class="flex items-center space-x-3">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-400 mr-2 animate-ping"></span>
+                    GET 방식 전용
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- 메인 컨텐츠 영역 -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- 좌측: 요청 입력 및 설정 패널 (5 열) -->
+        <section class="lg:col-span-5 space-y-6">
+            
+            <!-- 입력 폼 카드 -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl backdrop-blur">
+                <div class="flex items-center justify-between mb-5">
+                    <h2 class="text-sm font-semibold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-blue-400"></i> 요청 설정
+                    </h2>
+                    <button type="button" onclick="resetForm()" class="text-xs text-slate-400 hover:text-slate-200 transition flex items-center gap-1">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>초기화</span>
+                    </button>
+                </div>
+
+                <form id="webhookForm" onsubmit="handleSendRequest(event)" class="space-y-4">
+                    <!-- 연동 URL 입력 -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label for="webhookUrl" class="block text-xs font-semibold text-slate-300">
+                                연동할 대상 URL <span class="text-rose-400">*</span>
+                            </label>
+                            <button type="button" onclick="clearUrlInput()" class="text-[11px] text-slate-500 hover:text-slate-300">지우기</button>
+                        </div>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 font-mono text-xs">
+                                <i class="fa-solid fa-link"></i>
+                            </div>
+                            <input type="url" id="webhookUrl" required
+                                placeholder="https://example.com/api/webhook"
+                                value="https://httpbin.org/get"
+                                class="block w-full pl-9 pr-8 py-2.5 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs font-mono text-slate-200 placeholder-slate-600 transition"
+                                oninput="updateLiveUrlPreview()">
+                        </div>
+                    </div>
+
+                    <!-- Prompt 파라미터 입력 -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label for="promptInput" class="block text-xs font-semibold text-slate-300">
+                                프롬프트 파라미터 (<code class="text-blue-400">Prompt=</code>)
+                            </label>
+                            <button type="button" onclick="clearPromptInput()" class="text-[11px] text-slate-500 hover:text-slate-300">지우기</button>
+                        </div>
+                        <textarea id="promptInput" rows="4"
+                            placeholder="서버로 전달할 Prompt 텍스트를 입력하세요..."
+                            class="block w-full p-3 bg-slate-950 border border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs font-mono text-slate-200 placeholder-slate-600 transition resize-y"
+                            oninput="updateLiveUrlPreview()">[사내규정]에서 확인되는 휴가 종류에 대해 설명해줘.</textarea>
+                    </div>
+
+                    <!-- 실행 버튼 그룹 -->
+                    <div class="pt-2 flex flex-col sm:flex-row gap-3">
+                        <button type="submit" id="submitBtn"
+                            class="flex-1 py-2.5 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium rounded-xl shadow-lg shadow-blue-600/20 focus:outline-none focus:ring-2 focus:ring-blue-500 transition flex items-center justify-center gap-2 text-xs">
+                            <i id="btnIcon" class="fa-solid fa-paper-plane"></i>
+                            <span id="btnText">GET 요청 전송</span>
+                        </button>
+                        <button type="button" onclick="openInNewBrowserTab()"
+                            class="py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-xl border border-slate-700/80 transition flex items-center justify-center gap-2 text-xs">
+                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            <span>새 탭에서 열기</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 실시간 생성 URL 미리보기 카드 -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-globe text-blue-400"></i> 완성된 전체 GET URL
+                    </span>
+                    <button type="button" onclick="copyGeneratedUrl()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg transition flex items-center gap-1 border border-slate-700/60">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>URL 복사</span>
+                    </button>
+                </div>
+                <div id="urlPreview" class="p-3 bg-slate-950 rounded-xl border border-slate-800/80 font-mono text-xs text-blue-400 break-all select-all min-h-[42px] flex items-center">
+                    https://httpbin.org/get?Prompt=...
+                </div>
+            </div>
+
+            <!-- 최근 요청 이력 (History) -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-clock-rotate-left text-blue-400"></i> 최근 요청 이력
+                    </h3>
+                    <button type="button" onclick="clearHistoryLog()" class="text-xs text-rose-400 hover:text-rose-300 transition">
+                        이력 전체 삭제
+                    </button>
+                </div>
+                <div id="historyContainer" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    <p class="text-xs text-slate-600 italic py-2">저장된 이전 요청 이력이 없습니다.</p>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- 우측: 응답 결과 출력 패널 (7 열) -->
+        <section class="lg:col-span-7 flex flex-col space-y-6">
+            
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 sm:p-6 shadow-xl flex-1 flex flex-col min-h-[550px]">
+                
+                <!-- 응답 헤더 및 컨트롤 바 -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                    <div class="flex items-center space-x-3">
+                        <div class="p-2 bg-slate-950 rounded-lg border border-slate-800 text-blue-400">
+                            <i class="fa-solid fa-terminal text-base"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-sm font-semibold text-slate-200">응답 결과 창</h2>
+                            <p id="resStatusText" class="text-xs text-slate-400">요청 전송을 기다리는 중입니다...</p>
+                        </div>
+                    </div>
+
+                    <!-- 상태 배지 및 제어 버튼 -->
+                    <div class="flex items-center space-x-2 self-end sm:self-auto">
+                        <div id="statusBadge" class="hidden px-2.5 py-1 rounded-md border text-xs font-mono font-medium">
+                            상태 코드: -
+                        </div>
+                        <button type="button" onclick="copyCurrentResponse()" title="현재 탭 결과 복사" class="p-2 text-slate-400 hover:text-blue-400 bg-slate-950 border border-slate-800 rounded-lg transition flex items-center gap-1 text-xs px-3">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>응답 복사</span>
+                        </button>
+                        <button type="button" onclick="clearOutputWindow()" title="결과 창 지우기" class="p-2 text-slate-400 hover:text-rose-400 bg-slate-950 border border-slate-800 rounded-lg transition flex items-center gap-1 text-xs px-3">
+                            <i class="fa-solid fa-trash-can"></i>
+                            <span>결과 지우기</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 결과 보기 탭 네비게이션 -->
+                <div class="flex items-center space-x-1 border-b border-slate-800/60 pt-3 pb-2 overflow-x-auto">
+                    <button type="button" id="tabAnswerBtn" onclick="switchOutputTab('answer')"
+                        class="px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>답변 보기 (마크다운)</span>
+                    </button>
+                    <button type="button" id="tabRawBtn" onclick="switchOutputTab('raw')"
+                        class="px-3 py-1.5 text-xs font-medium rounded-lg text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-code"></i>
+                        <span>원본 JSON</span>
+                    </button>
+                    <button type="button" id="tabHeadersBtn" onclick="switchOutputTab('headers')"
+                        class="px-3 py-1.5 text-xs font-medium rounded-lg text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>요청 상세</span>
+                    </button>
+                </div>
+
+                <!-- 응답 화면 디스플레이 영역 -->
+                <div class="flex-1 relative mt-4 flex flex-col min-h-[380px]">
+                    
+                    <!-- 로딩 중 스피너 오버레이 -->
+                    <div id="loadingOverlay" class="hidden absolute inset-0 bg-slate-900/95 backdrop-blur-sm z-20 flex flex-col items-center justify-center rounded-xl">
+                        <div class="relative flex items-center justify-center">
+                            <div class="w-12 h-12 rounded-full border-2 border-blue-500/20 border-t-blue-500 animate-spin"></div>
+                            <i class="fa-solid fa-bolt text-blue-400 absolute text-sm"></i>
+                        </div>
+                        <span class="text-xs font-medium text-slate-300 mt-4">요청을 처리하는 중입니다...</span>
+                        <span class="text-[11px] text-slate-500 mt-1">지정한 웹훅 서버로 GET 요청을 전송하고 있습니다</span>
+                    </div>
+
+                    <!-- 탭 1: 파싱된 답변 보기 (마크다운 출력) -->
+                    <div id="tabAnswerView" class="flex-1 w-full bg-slate-950 rounded-xl border border-slate-800/80 p-5 overflow-auto max-h-[500px]">
+                        <div id="statusHeaderCard" class="hidden mb-4 p-3 rounded-lg border bg-slate-900 flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs text-slate-400">웹훅 처리 상태:</span>
+                                <span id="webhookStatusVal" class="text-xs font-mono font-bold px-2 py-0.5 rounded uppercase">성공</span>
+                            </div>
+                            <span class="text-[10px] text-slate-500 font-mono">JSON 데이터 파싱 완료</span>
+                        </div>
+                        
+                        <!-- 마크다운 출력 컨테이너 -->
+                        <div id="markdownOutput" class="markdown-body">
+                            <p class="text-slate-500 text-xs italic">
+                                요청 전송 준비 완료. 대상 URL과 프롬프트를 입력한 뒤 <strong class="text-slate-400 font-normal">[GET 요청 전송]</strong> 버튼을 누르세요.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 탭 2: 원본 JSON 출력 -->
+                    <div id="tabRawView" class="hidden flex-1 w-full bg-slate-950 rounded-xl border border-slate-800/80 p-4 overflow-auto max-h-[500px]">
+                        <pre id="jsonRawOutput" class="font-mono text-xs text-slate-300 whitespace-pre-wrap break-all leading-relaxed">// 수신된 원본 데이터가 이곳에 구문 강조되어 출력됩니다...</pre>
+                    </div>
+
+                    <!-- 탭 3: 요청 상세 메타 정보 -->
+                    <div id="tabHeadersView" class="hidden flex-1 w-full bg-slate-950 rounded-xl border border-slate-800/80 p-5 overflow-auto space-y-4 max-h-[500px]">
+                        <div>
+                            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">실행 결과 수치</h4>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 font-mono text-xs">
+                                <div class="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                    <span class="text-slate-500 text-[10px] block">HTTP 응답 상태</span>
+                                    <span id="metaStatus" class="font-bold text-slate-200">-</span>
+                                </div>
+                                <div class="bg-slate-900 p-3 rounded-lg border border-slate-800">
+                                    <span class="text-slate-500 text-[10px] block">요청 소요 시간</span>
+                                    <span id="metaTime" class="font-bold text-blue-400">0 ms</span>
+                                </div>
+                                <div class="bg-slate-900 p-3 rounded-lg border border-slate-800 col-span-2 sm:col-span-1">
+                                    <span class="text-slate-500 text-[10px] block">응답 데이터 크기</span>
+                                    <span id="metaSize" class="font-bold text-slate-200">0 B</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">수신된 응답 헤더 (HTTP Headers)</h4>
+                            <pre id="metaHeaders" class="p-3 bg-slate-900 rounded-lg border border-slate-800 font-mono text-xs text-slate-400 whitespace-pre-wrap overflow-x-auto">실행된 요청이 없습니다.</pre>
+                        </div>
+                    </div>
+
+                    <!-- CORS 및 네트워크 에러 안내 카드 -->
+                    <div id="errorAlert" class="hidden mt-4 p-4 bg-rose-950/40 border border-rose-900/60 rounded-xl text-rose-200 space-y-2">
+                        <div class="flex items-center space-x-2 text-rose-400 font-semibold text-xs">
+                            <i class="fa-solid fa-circle-exclamation"></i>
+                            <span id="errorTitle">요청 전송 실패 / CORS 제한 발생</span>
+                        </div>
+                        <p id="errorMessage" class="text-xs text-rose-300/80 leading-relaxed">
+                            지정한 엔드포인트로 HTTP GET 요청을 전송하는 중 오류가 발생했습니다.
+                        </p>
+                        <div class="text-[11px] bg-slate-950/80 p-3 rounded-lg border border-rose-900/30 text-slate-400 space-y-1">
+                            <p class="font-semibold text-slate-300">원인 및 해결 방법 안내:</p>
+                            <p>1. <strong>CORS(교차 출처 자원 공유) 제한:</strong> 대상 서버의 헤더에 <code class="text-blue-400">Access-Control-Allow-Origin: *</code> 설정이 없어 브라우저가 응답 수신을 차단했을 수 있습니다.</p>
+                            <p>2. <strong>우회 테스트:</strong> 상단의 <button type="button" onclick="openInNewBrowserTab()" class="text-blue-400 underline hover:text-blue-300">[새 탭에서 열기]</button> 버튼을 통해 브라우저에서 직접 URL을 실행해 보세요.</p>
+                            <p>3. 대상 URL이 정상적으로 동작하는지 확인해 주세요.</p>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- 토스트 알림 메시지 -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-blue-600 text-white font-medium text-xs px-4 py-2.5 rounded-xl shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-2 z-50 pointer-events-none">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toastMsg">작업이 정상적으로 완료되었습니다.</span>
+    </div>
+
+    <!-- 애플리케이션 스크립트 로직 -->
+    <script>
+        // 상태 전역 변수
+        let currentResponseRaw = '';
+        let currentResponseParsed = null;
+        let activeTab = 'answer'; // 'answer' | 'raw' | 'headers'
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateLiveUrlPreview();
+            loadHistoryFromStorage();
+        });
+
+        // 폼 입력 비우기 및 초기화
+        function clearUrlInput() {
+            document.getElementById('webhookUrl').value = '';
+            updateLiveUrlPreview();
+        }
+
+        function clearPromptInput() {
+            document.getElementById('promptInput').value = '';
+            updateLiveUrlPreview();
+        }
+
+        function resetForm() {
+            document.getElementById('webhookUrl').value = 'https://httpbin.org/get';
+            document.getElementById('promptInput').value = '[사내규정]에서 확인되는 휴가 종류에 대해 설명해줘.';
+            updateLiveUrlPreview();
+            showToast('입력 항목이 초기화되었습니다.');
+        }
+
+        // 전체 GET URL 실시간 구성
+        function buildFullUrl() {
+            const baseUrl = document.getElementById('webhookUrl').value.trim();
+            const promptVal = document.getElementById('promptInput').value;
+
+            if (!baseUrl) return '';
+
+            try {
+                const urlObj = new URL(baseUrl);
+                if (promptVal !== '') {
+                    urlObj.searchParams.set('Prompt', promptVal);
+                }
+                return urlObj.toString();
+            } catch (err) {
+                // 커스텀 또는 비표준 URL에 대한 예외 처리
+                let constructed = baseUrl;
+                if (promptVal) {
+                    const delimiter = constructed.includes('?') ? '&' : '?';
+                    constructed += `${delimiter}Prompt=${encodeURIComponent(promptVal)}`;
+                }
+                return constructed;
+            }
+        }
+
+        function updateLiveUrlPreview() {
+            const fullUrl = buildFullUrl();
+            document.getElementById('urlPreview').textContent = fullUrl || '대상 URL을 입력하세요...';
+        }
+
+        function copyGeneratedUrl() {
+            const fullUrl = buildFullUrl();
+            if (!fullUrl) return;
+            copyToClipboard(fullUrl);
+            showToast('전체 GET URL이 클립보드에 복사되었습니다.');
+        }
+
+        function openInNewBrowserTab() {
+            const fullUrl = buildFullUrl();
+            if (!fullUrl) {
+                showToast('대상 URL을 먼저 입력해 주세요.');
+                return;
+            }
+            saveHistoryToStorage(fullUrl);
+            window.open(fullUrl, '_blank');
+            showToast('새 브라우저 탭에서 URL을 열었습니다.');
+        }
+
+        // 결과창 탭 전환 로직
+        function switchOutputTab(tabKey) {
+            activeTab = tabKey;
+
+            const btnAnswer = document.getElementById('tabAnswerBtn');
+            const btnRaw = document.getElementById('tabRawBtn');
+            const btnHeaders = document.getElementById('tabHeadersBtn');
+
+            const viewAnswer = document.getElementById('tabAnswerView');
+            const viewRaw = document.getElementById('tabRawView');
+            const viewHeaders = document.getElementById('tabHeadersView');
+
+            // 버튼 기본 스타일 초기화
+            [btnAnswer, btnRaw, btnHeaders].forEach(btn => {
+                btn.className = "px-3 py-1.5 text-xs font-medium rounded-lg text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5";
+            });
+
+            viewAnswer.classList.add('hidden');
+            viewRaw.classList.add('hidden');
+            viewHeaders.classList.add('hidden');
+
+            if (tabKey === 'answer') {
+                btnAnswer.className = "px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white transition flex items-center gap-1.5";
+                viewAnswer.classList.remove('hidden');
+            } else if (tabKey === 'raw') {
+                btnRaw.className = "px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white transition flex items-center gap-1.5";
+                viewRaw.classList.remove('hidden');
+            } else if (tabKey === 'headers') {
+                btnHeaders.className = "px-3 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white transition flex items-center gap-1.5";
+                viewHeaders.classList.remove('hidden');
+            }
+        }
+
+        // GET 요청 전송 핸들러
+        async function handleSendRequest(e) {
+            e.preventDefault();
+            const fullUrl = buildFullUrl();
+
+            if (!fullUrl) {
+                showToast('유효한 대상 URL을 입력해 주세요.');
+                return;
+            }
+
+            saveHistoryToStorage(fullUrl);
+            await executeFetch(fullUrl);
+        }
+
+        async function executeFetch(url) {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const submitBtn = document.getElementById('submitBtn');
+            const btnIcon = document.getElementById('btnIcon');
+            const btnText = document.getElementById('btnText');
+            
+            const statusBadge = document.getElementById('statusBadge');
+            const statusHeaderCard = document.getElementById('statusHeaderCard');
+            const webhookStatusVal = document.getElementById('webhookStatusVal');
+            const errorAlert = document.getElementById('errorAlert');
+
+            const markdownOutput = document.getElementById('markdownOutput');
+            const jsonRawOutput = document.getElementById('jsonRawOutput');
+            const metaStatus = document.getElementById('metaStatus');
+            const metaTime = document.getElementById('metaTime');
+            const metaSize = document.getElementById('metaSize');
+            const metaHeaders = document.getElementById('metaHeaders');
+
+            // 로딩 상태 UI 적용
+            loadingOverlay.classList.remove('hidden');
+            errorAlert.classList.add('hidden');
+            submitBtn.disabled = true;
+            btnIcon.className = "fa-solid fa-spinner fa-spin";
+            btnText.textContent = "전송 중...";
+
+            const startTime = performance.now();
+
+            try {
+                const response = await fetch(url, { method: 'GET' });
+                const endTime = performance.now();
+                const duration = Math.round(endTime - startTime);
+
+                // 상태 배지 업데이트
+                statusBadge.classList.remove('hidden');
+                statusBadge.textContent = `HTTP ${response.status} ${response.statusText || ''}`;
+                
+                if (response.ok) {
+                    statusBadge.className = 'px-2.5 py-1 rounded-md border text-xs font-mono font-medium border-emerald-500/30 text-emerald-400 bg-emerald-500/10';
+                } else {
+                    statusBadge.className = 'px-2.5 py-1 rounded-md border text-xs font-mono font-medium border-rose-500/30 text-rose-400 bg-rose-500/10';
+                }
+
+                currentResponseRaw = await response.text();
+
+                // 상세 메타 정보 설정
+                metaStatus.textContent = `${response.status} ${response.statusText}`;
+                metaTime.textContent = `${duration} ms`;
+                metaSize.textContent = `${new Blob([currentResponseRaw]).size} B`;
+
+                let headerText = '';
+                response.headers.forEach((val, key) => {
+                    headerText += `${key}: ${val}\n`;
+                });
+                metaHeaders.textContent = headerText || '수신된 응답 헤더가 없습니다.';
+
+                // JSON 파싱 시도
+                try {
+                    currentResponseParsed = JSON.parse(currentResponseRaw);
+                    
+                    // Raw JSON 뷰어 구문 강조
+                    jsonRawOutput.innerHTML = highlightJsonSyntax(JSON.stringify(currentResponseParsed, null, 2));
+
+                    // 웹훅 데이터 구조 { "answer": "...", "status": "success" } 검증
+                    if (currentResponseParsed && currentResponseParsed.answer !== undefined) {
+                        
+                        // status 파라미터가 있을 경우 상태 배지 표시
+                        if (currentResponseParsed.status) {
+                            statusHeaderCard.classList.remove('hidden');
+                            webhookStatusVal.textContent = currentResponseParsed.status;
+                            if (String(currentResponseParsed.status).toLowerCase() === 'success') {
+                                webhookStatusVal.className = 'text-xs font-mono font-bold px-2 py-0.5 rounded uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+                            } else {
+                                webhookStatusVal.className = 'text-xs font-mono font-bold px-2 py-0.5 rounded uppercase bg-rose-500/20 text-rose-400 border border-rose-500/30';
+                            }
+                        } else {
+                            statusHeaderCard.classList.add('hidden');
+                        }
+
+                        // answer 필드의 마크다운 문자열 파싱 후 출력
+                        const markdownContent = String(currentResponseParsed.answer);
+                        markdownOutput.innerHTML = marked.parse(markdownContent);
+
+                    } else {
+                        // answer 키가 없는 일반 JSON 응답 시 안내
+                        statusHeaderCard.classList.add('hidden');
+                        markdownOutput.innerHTML = `<p class="text-xs text-amber-400 mb-2"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 수신된 JSON 데이터에 <code>"answer"</code> 키가 포함되어 있지 않습니다. 아래 원본 JSON 구조를 확인하세요.</p><pre><code>${escapeHtml(JSON.stringify(currentResponseParsed, null, 2))}</code></pre>`;
+                    }
+
+                } catch (parseErr) {
+                    // JSON 형태가 아닌 경우 (텍스트 / HTML 등)
+                    currentResponseParsed = null;
+                    statusHeaderCard.classList.add('hidden');
+                    jsonRawOutput.textContent = currentResponseRaw;
+                    
+                    // 일반 텍스트에 대한 마크다운 파싱 시도
+                    markdownOutput.innerHTML = marked.parse(currentResponseRaw || '*응답 본문이 비어있습니다.*');
+                }
+
+                document.getElementById('resStatusText').textContent = `요청 완료 (소요 시간: ${duration}ms)`;
+                showToast(`GET 요청 성공 (HTTP ${response.status})`);
+
+            } catch (err) {
+                // 네트워크 오류 또는 CORS 제한 발생 시
+                statusBadge.classList.remove('hidden');
+                statusBadge.textContent = '요청 실패 / CORS 차단';
+                statusBadge.className = 'px-2.5 py-1 rounded-md border text-xs font-mono font-medium border-rose-500/30 text-rose-400 bg-rose-500/10';
+
+                document.getElementById('errorMessage').textContent = err.message || '요청 전송에 실패했습니다. CORS(교차 출처 자원 공유) 정책으로 인해 브라우저에서 응답 수신이 거부되었을 수 있습니다.';
+                errorAlert.classList.remove('hidden');
+
+                document.getElementById('resStatusText').textContent = '요청 실행 중 오류 발생';
+                markdownOutput.innerHTML = `<p class="text-xs text-rose-400"><i class="fa-solid fa-bug mr-1"></i> 요청을 완료하지 못했습니다. 아래의 에러 진단 카드를 확인해 주세요.</p>`;
+                jsonRawOutput.textContent = `[오류 원인] ${err.toString()}`;
+            } finally {
+                loadingOverlay.classList.add('hidden');
+                submitBtn.disabled = false;
+                btnIcon.className = "fa-solid fa-paper-plane";
+                btnText.textContent = "GET 요청 전송";
+            }
+        }
+
+        // JSON 구문 하이라이팅 헬퍼
+        function highlightJsonSyntax(jsonStr) {
+            jsonStr = escapeHtml(jsonStr);
+            return jsonStr.replace(/("(\\u[a-zA-A0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+                let cls = 'json-number';
+                if (/^"/.test(match)) {
+                    if (/:$/.test(match)) {
+                        cls = 'json-key';
+                    } else {
+                        cls = 'json-string';
+                    }
+                } else if (/true|false/.test(match)) {
+                    cls = 'json-boolean';
+                } else if (/null/.test(match)) {
+                    cls = 'json-null';
+                }
+                return `<span class="${cls}">${match}</span>`;
+            });
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        // 현재 탭의 내용 클립보드 복사
+        function copyCurrentResponse() {
+            if (!currentResponseRaw) {
+                showToast('복사할 응답 데이터가 없습니다.');
+                return;
+            }
+
+            if (activeTab === 'answer' && currentResponseParsed && currentResponseParsed.answer) {
+                copyToClipboard(currentResponseParsed.answer);
+                showToast('파싱된 답변 텍스트가 클립보드에 복사되었습니다.');
+            } else {
+                copyToClipboard(currentResponseRaw);
+                showToast('원본 응답 데이터가 클립보드에 복사되었습니다.');
+            }
+        }
+
+        function clearOutputWindow() {
+            currentResponseRaw = '';
+            currentResponseParsed = null;
+
+            document.getElementById('markdownOutput').innerHTML = '<p class="text-slate-500 text-xs italic">결과 창이 초기화되었습니다.</p>';
+            document.getElementById('jsonRawOutput').textContent = '// 결과가 지워졌습니다.';
+            document.getElementById('statusBadge').classList.add('hidden');
+            document.getElementById('statusHeaderCard').classList.add('hidden');
+            document.getElementById('errorAlert').classList.add('hidden');
+            document.getElementById('resStatusText').textContent = '요청 전송을 기다리는 중입니다...';
+            showToast('결과 창을 지웠습니다.');
+        }
+
+        // localStorage 히스토리 관리
+        function saveHistoryToStorage(url) {
+            let history = JSON.parse(localStorage.getItem('webhook_get_history_ko') || '[]');
+            history = history.filter(item => item !== url);
+            history.unshift(url);
+            if (history.length > 5) history.pop();
+            localStorage.setItem('webhook_get_history_ko', JSON.stringify(history));
+            loadHistoryFromStorage();
+        }
+
+        function loadHistoryFromStorage() {
+            const history = JSON.parse(localStorage.getItem('webhook_get_history_ko') || '[]');
+            const container = document.getElementById('historyContainer');
+
+            if (history.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-600 italic py-2">저장된 이전 요청 이력이 없습니다.</p>`;
+                return;
+            }
+
+            container.innerHTML = history.map(url => `
+                <div class="flex items-center justify-between p-2 rounded-lg bg-slate-950 border border-slate-800/80 hover:border-slate-700 transition">
+                    <span onclick="applyHistoryPreset('${encodeURIComponent(url)}')" class="text-xs font-mono text-slate-300 truncate cursor-pointer hover:text-blue-400 flex-1 mr-2" title="이 URL 재불러오기">
+                        ${escapeHtml(url)}
+                    </span>
+                    <button type="button" onclick="applyHistoryPreset('${encodeURIComponent(url)}')" class="text-xs text-slate-500 hover:text-blue-400 px-1.5 py-0.5" title="불러오기">
+                        <i class="fa-solid fa-arrow-turn-up"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function applyHistoryPreset(encodedUrl) {
+            const urlStr = decodeURIComponent(encodedUrl);
+            try {
+                const parsed = new URL(urlStr);
+                const promptVal = parsed.searchParams.get('Prompt') || '';
+                parsed.searchParams.delete('Prompt');
+
+                document.getElementById('webhookUrl').value = parsed.origin + parsed.pathname;
+                document.getElementById('promptInput').value = promptVal;
+
+                updateLiveUrlPreview();
+                showToast('이력에서 URL과 프롬프트를 불러왔습니다.');
+            } catch (err) {
+                document.getElementById('webhookUrl').value = urlStr;
+                updateLiveUrlPreview();
+            }
+        }
+
+        function clearHistoryLog() {
+            localStorage.removeItem('webhook_get_history_ko');
+            loadHistoryFromStorage();
+            showToast('최근 요청 이력이 모두 삭제되었습니다.');
+        }
+
+        // 클립보드 복사 헬퍼
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+        }
+
+        // 토스트 알림 헬퍼
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            toastMsg.textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 {
-    "name": "명함 분류기 (empty)",
+    "name": "L2-1.영수증처리 Google Form",
     "flow": [
         {
             "id": 2,
@@ -8,11 +8,11 @@
             "parameters": {
                 "from": "drive",
                 "mode": "select",
-                "limit": 1,
-                "sheetId": "contacts",
-                "__IMTCONN__": 9282635,
-                "spreadsheetId": "/1Ca3Dkn1vaYPo-X-2973jP3Q_hH37RmpYLrKNerOQn9Y",
-                "tableFirstRow": "A1:Z1",
+                "limit": 2,
+                "sheetId": "urls",
+                "__IMTCONN__": 9377276,
+                "spreadsheetId": "/1mcdVCRUDpRcL9k5-7pQ3maS42PFDvY7gfC1xnDIUsjI",
+                "tableFirstRow": "A1:B1",
                 "includesHeaders": true,
                 "valueRenderOption": "FORMATTED_VALUE",
                 "dateTimeRenderOption": "FORMATTED_STRING"
@@ -20,8 +20,16 @@
             "mapper": {},
             "metadata": {
                 "designer": {
-                    "x": -542,
-                    "y": 109
+                    "x": -602,
+                    "y": 9
+                },
+                "setupValidation": {
+                    "result": {
+                        "valid": true,
+                        "fields": []
+                    },
+                    "version": 1,
+                    "configuration": "e809098d904e8e"
                 },
                 "restore": {
                     "parameters": {
@@ -32,7 +40,7 @@
                             "label": "Search by path"
                         },
                         "sheetId": {
-                            "label": "contacts"
+                            "label": "urls"
                         },
                         "__IMTCONN__": {
                             "data": {
@@ -43,7 +51,7 @@
                         },
                         "spreadsheetId": {
                             "path": [
-                                "make_명함"
+                                "영수증 처리 입력(응답)"
                             ]
                         },
                         "includesHeaders": {
@@ -171,132 +179,12 @@
                     {
                         "name": "0",
                         "type": "text",
-                        "label": "ID (A)"
+                        "label": "타임스탬프 (A)"
                     },
                     {
                         "name": "1",
                         "type": "text",
-                        "label": "이름 (B)"
-                    },
-                    {
-                        "name": "2",
-                        "type": "text",
-                        "label": "전화번호 (C)"
-                    },
-                    {
-                        "name": "3",
-                        "type": "text",
-                        "label": "이메일 (D)"
-                    },
-                    {
-                        "name": "4",
-                        "type": "text",
-                        "label": "회사명 (E)"
-                    },
-                    {
-                        "name": "5",
-                        "type": "text",
-                        "label": "Image (F)"
-                    },
-                    {
-                        "name": "6",
-                        "type": "text",
-                        "label": "(G)"
-                    },
-                    {
-                        "name": "7",
-                        "type": "text",
-                        "label": "(H)"
-                    },
-                    {
-                        "name": "8",
-                        "type": "text",
-                        "label": "(I)"
-                    },
-                    {
-                        "name": "9",
-                        "type": "text",
-                        "label": "(J)"
-                    },
-                    {
-                        "name": "10",
-                        "type": "text",
-                        "label": "(K)"
-                    },
-                    {
-                        "name": "11",
-                        "type": "text",
-                        "label": "(L)"
-                    },
-                    {
-                        "name": "12",
-                        "type": "text",
-                        "label": "(M)"
-                    },
-                    {
-                        "name": "13",
-                        "type": "text",
-                        "label": "(N)"
-                    },
-                    {
-                        "name": "14",
-                        "type": "text",
-                        "label": "(O)"
-                    },
-                    {
-                        "name": "15",
-                        "type": "text",
-                        "label": "(P)"
-                    },
-                    {
-                        "name": "16",
-                        "type": "text",
-                        "label": "(Q)"
-                    },
-                    {
-                        "name": "17",
-                        "type": "text",
-                        "label": "(R)"
-                    },
-                    {
-                        "name": "18",
-                        "type": "text",
-                        "label": "(S)"
-                    },
-                    {
-                        "name": "19",
-                        "type": "text",
-                        "label": "(T)"
-                    },
-                    {
-                        "name": "20",
-                        "type": "text",
-                        "label": "(U)"
-                    },
-                    {
-                        "name": "21",
-                        "type": "text",
-                        "label": "(V)"
-                    },
-                    {
-                        "name": "22",
-                        "type": "text",
-                        "label": "(W)"
-                    },
-                    {
-                        "name": "23",
-                        "type": "text",
-                        "label": "(X)"
-                    },
-                    {
-                        "name": "24",
-                        "type": "text",
-                        "label": "(Y)"
-                    },
-                    {
-                        "name": "25",
-                        "type": "text",
-                        "label": "(Z)"
+                        "label": "영수증 이미지 업로드 (B)"
                     }
                 ]
             }
@@ -307,12 +195,12 @@
             "version": 1,
             "parameters": {},
             "mapper": {
-                "duration": "10"
+                "duration": "1"
             },
             "metadata": {
                 "designer": {
-                    "x": -344,
-                    "y": -203
+                    "x": -447,
+                    "y": -247
                 },
                 "restore": {},
                 "expect": [
@@ -330,151 +218,87 @@
             }
         },
         {
-            "id": 13,
-            "module": "google-drive:searchForFilesFolders",
-            "version": 4,
-            "parameters": {
-                "__IMTCONN__": 9282659
-            },
+            "id": 22,
+            "module": "util:SetVariable2",
+            "version": 1,
+            "parameters": {},
+            "filter": null,
             "mapper": {
-                "limit": "1",
-                "query": "{{first(split(last(split(2.`5`; \"/\")); \".\"))}}",
-                "select": "list",
-                "operator": "contains",
-                "retrieve": "file",
-                "searchType": "title",
-                "destination": "drive",
-                "searchScope": "everywhere"
+                "name": "urlList",
+                "value": "{{split(2.`1`; \", \")}}"
             },
             "metadata": {
                 "designer": {
-                    "x": -200,
-                    "y": 117
+                    "x": -283,
+                    "y": 9
+                },
+                "setupValidation": {
+                    "result": {
+                        "valid": true,
+                        "fields": []
+                    },
+                    "version": 1,
+                    "configuration": "ff12959bc336a07e"
+                },
+                "restore": {},
+                "expect": [
+                    {
+                        "name": "name",
+                        "type": "text",
+                        "label": "Variable name",
+                        "required": true
+                    },
+                    {
+                        "name": "value",
+                        "type": "any",
+                        "label": "Variable value"
+                    }
+                ],
+                "interface": [
+                    {
+                        "name": "urlList",
+                        "type": "any",
+                        "label": "urlList"
+                    }
+                ]
+            }
+        },
+        {
+            "id": 23,
+            "module": "builtin:BasicFeeder",
+            "version": 1,
+            "parameters": {},
+            "filter": null,
+            "mapper": {
+                "array": "{{22.urlList}}"
+            },
+            "metadata": {
+                "designer": {
+                    "x": -60,
+                    "y": -237
+                },
+                "setupValidation": {
+                    "result": {
+                        "valid": true,
+                        "fields": []
+                    },
+                    "version": 1,
+                    "configuration": "66a2f95c7511e25f"
                 },
                 "restore": {
                     "expect": {
-                        "select": {
-                            "label": "Select from the list"
-                        },
-                        "operator": {
-                            "label": "Search for name containing the search term"
-                        },
-                        "retrieve": {
-                            "label": "Files"
-                        },
-                        "searchType": {
-                            "label": "Search within file/folder names"
-                        },
-                        "destination": {
-                            "label": "My Drive"
-                        },
-                        "searchScope": {
-                            "label": "Search everywhere"
-                        }
-                    },
-                    "parameters": {
-                        "__IMTCONN__": {
-                            "data": {
-                                "scoped": "true",
-                                "connection": "google-drive"
-                            },
-                            "label": "타이니파머's Google Drive connection (tinyfarmer74@gmail.com)"
+                        "array": {
+                            "mode": "edit"
                         }
                     }
                 },
-                "parameters": [
-                    {
-                        "name": "__IMTCONN__",
-                        "type": "account:google-restricted,google-drive",
-                        "label": "Connection",
-                        "required": true
-                    }
-                ],
                 "expect": [
                     {
-                        "name": "select",
-                        "type": "select",
-                        "label": "Select the Method",
-                        "required": true,
-                        "validate": {
-                            "enum": [
-                                "map",
-                                "list"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "retrieve",
-                        "type": "select",
-                        "label": "Retrieve",
-                        "required": true,
-                        "validate": {
-                            "enum": [
-                                "file",
-                                "folder",
-                                "file_folder"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "searchType",
-                        "type": "select",
-                        "label": "Search",
-                        "validate": {
-                            "enum": [
-                                "title",
-                                "fulltext",
-                                "custom"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "limit",
-                        "type": "uinteger",
-                        "label": "Limit"
-                    },
-                    {
-                        "name": "destination",
-                        "type": "select",
-                        "label": "Choose a Drive",
-                        "required": true,
-                        "validate": {
-                            "enum": [
-                                "drive",
-                                "share",
-                                "team"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "searchScope",
-                        "type": "select",
-                        "label": "Search Scope",
-                        "required": true,
-                        "validate": {
-                            "enum": [
-                                "everywhere",
-                                "limit"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "query",
-                        "type": "text",
-                        "label": "Query",
-                        "required": true
-                    },
-                    {
-                        "name": "operator",
-                        "type": "select",
-                        "label": "Search options",
-                        "required": true,
-                        "validate": {
-                            "enum": [
-                                "=",
-                                "contains"
-                            ]
-                        }
+                        "mode": "edit",
+                        "name": "array",
+                        "spec": [],
+                        "type": "array",
+                        "label": "Array"
                     }
                 ]
             }
@@ -487,7 +311,7 @@
                 "__IMTCONN__": 9282659
             },
             "mapper": {
-                "file": "{{13.id}}",
+                "file": "{{last(split(23.value; \"id=\"))}}",
                 "select": "map",
                 "formatDrawings": "image/jpeg",
                 "formatDocuments": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -496,8 +320,16 @@
             },
             "metadata": {
                 "designer": {
-                    "x": -17,
-                    "y": -210
+                    "x": 135,
+                    "y": 5
+                },
+                "setupValidation": {
+                    "result": {
+                        "valid": true,
+                        "fields": []
+                    },
+                    "version": 1,
+                    "configuration": "b348a44aa0403d57"
                 },
                 "restore": {
                     "expect": {
@@ -619,8 +451,8 @@
             "module": "http:MakeRequest",
             "version": 4,
             "parameters": {
-                "authenticationType": "noAuth",
-                "tlsType": ""
+                "tlsType": "",
+                "authenticationType": "noAuth"
             },
             "mapper": {
                 "url": "https://factchat-cloud.mindlogic.ai/v1/gateway/chat/completions/",
@@ -632,32 +464,33 @@
                     },
                     {
                         "name": "Authorization",
-                        "value": "Bearer [API KEY]"
+                        "value": "Bearer J93JgrGNFVuyuYARyDDu06dYnvXjuZki"
                     }
                 ],
+                "timeout": "40",
                 "contentType": "json",
-                "parseResponse": true,
-                "stopOnHttpError": true,
-                "allowRedirects": true,
-                "shareCookies": false,
-                "requestCompressedContent": true,
                 "inputMethod": "jsonString",
-                "jsonStringBodyContent": "{\n  \"model\": \"gpt-4o\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"이 명함 이미지에서 다음 정보를 추출해서 JSON 형식으로 정리해줘: 이름(name), 회사(company), 직급(position), 전화번호(phone), 이메일(email).\"\n        },\n        {\n          \"type\": \"image_url\",\n          \"image_url\": {\n            \"url\": \"data:image/jpeg;base64,{{base64(18.data)}}\"\n          }\n        }\n      ]\n    }\n  ]\n}"
+                "shareCookies": false,
+                "parseResponse": true,
+                "allowRedirects": true,
+                "stopOnHttpError": true,
+                "jsonStringBodyContent": "{\n  \"model\": \"gpt-5.4\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"페르소나: 사용자는 영수증 이미지에서 특정 정보를 추출하고, 이를 JSON 형식으로 요약 및 재구성하는 작업을 지시합니다. 사용자는 명확하고 구조화된 출력을 선호하며, 반복적인 작업을 자동화하려는 의도를 가지고 있습니다. 사용자는 특히 JSON 데이터의 특정 필드를 요약하여 표시하는 등, 데이터 처리 방식에 대한 구체적인 요구사항을 제시합니다. 작업 지시: 영수증 이미지 분석 및 정보 추출: 제공된 영수증 이미지에서 다음 정보를 정확하게 추출합니다: 구매일자, 구매처, 항목(이름 및 금액), 총 판매 합계, 결제 금액. 초기 JSON 형식화: 추출된 정보를 JSON 형식으로 변환합니다. 항목은 각 품목의 이름과 금액을 포함하는 배열 형태로 구성합니다. 요약된 JSON 형식화: 사용자의 추가 요청에 따라, JSON 형식을 다음과 같이 요약하여 재구성합니다: 구매일자, 구매처는 기존과 동일하게 유지합니다. 항목 배열 대신 항목_요약 필드를 추가합니다. 이 필드는 항목 배열의 첫 번째 품목 이름과 외 N개 (N은 첫 번째 품목을 제외한 나머지 품목의 개수) 형식으로 요약된 문자열을 포함합니다. 총 판매 합계와 결제 금액 대신 총_결제_금액 필드를 추가하고, 최종 결제 금액을 표시합니다. 복수 영수증 처리: 여러 영수증에 대한 정보를 처리할 경우, 각 영수증별 요약된 JSON 객체를 포함하는 JSON 배열 형태로 최종 출력을 제공합니다. 출력 형식: 모든 출력은 요청된 JSON 형식이어야 합니다. 한국어 필드명과 내용이 포함될 경우 ensure_ascii=False 옵션을 사용하여 한글이 깨지지 않도록 처리합니다. 가독성을 위해 indent=4를 사용하여 JSON을 들여쓰기합니다.   예시 JSON (최종 요약 형식): json [ { '구매일자': 'YYYY-MM-DD', '구매처': '구매처_이름', '항목_요약': '첫_번째_품목_이름 외 N개', '총_결제_금액': 12345 }, { '구매일자': 'YYYY-MM-DD', '구매처': '구매처_이름', '항목_요약': '단일_품목_이름', '총_결제_금액': 6789 } ]\"\n        },\n        {\n          \"type\": \"image_url\",\n          \"image_url\": {\n            \"url\": \"data:image/png;base64,{{base64(18.data)}}\"\n          }\n        }\n      ]\n    }\n  ]\n}",
+                "requestCompressedContent": true
             },
             "metadata": {
                 "designer": {
-                    "x": 146,
-                    "y": 110
+                    "x": 400,
+                    "y": -236
+                },
+                "setupValidation": {
+                    "result": {
+                        "valid": true,
+                        "fields": []
+                    },
+                    "version": 1,
+                    "configuration": "53856fced1f8667d"
                 },
                 "restore": {
-                    "parameters": {
-                        "authenticationType": {
-                            "label": "No authenticationUse when no credentials are required for the request."
-                        },
-                        "tlsType": {
-                            "label": "Empty"
-                        }
-                    },
                     "expect": {
                         "method": {
                             "mode": "chose",
@@ -670,32 +503,40 @@
                                 null
                             ]
                         },
-                        "queryParameters": {
-                            "mode": "chose"
-                        },
                         "contentType": {
                             "label": "application/jsonEnter data in the JSON format, as a string or using a data structure."
                         },
-                        "parseResponse": {
+                        "inputMethod": {
+                            "label": "JSON stringEnter the JSON body as a raw text string. If values contain JSON reserved characters, you must escape them manually."
+                        },
+                        "shareCookies": {
                             "mode": "chose"
                         },
-                        "stopOnHttpError": {
+                        "parseResponse": {
                             "mode": "chose"
                         },
                         "allowRedirects": {
                             "mode": "chose"
                         },
-                        "shareCookies": {
+                        "paginationType": {
+                            "label": "Empty"
+                        },
+                        "queryParameters": {
+                            "mode": "chose"
+                        },
+                        "stopOnHttpError": {
                             "mode": "chose"
                         },
                         "requestCompressedContent": {
                             "mode": "chose"
-                        },
-                        "inputMethod": {
-                            "label": "JSON stringEnter the JSON body as a raw text string. If values contain JSON reserved characters, you must escape them manually."
-                        },
-                        "paginationType": {
+                        }
+                    },
+                    "parameters": {
+                        "tlsType": {
                             "label": "Empty"
+                        },
+                        "authenticationType": {
+                            "label": "No authenticationUse when no credentials are required for the request."
                         }
                     }
                 },
@@ -708,9 +549,11 @@
                         "validate": {
                             "enum": [
                                 "noAuth",
+                                "apiKeyConnection",
+                                "basicAuthConnection",
+                                "oAuth",
                                 "apiKey",
-                                "basicAuth",
-                                "oAuth"
+                                "basicAuth"
                             ]
                         }
                     },
@@ -757,17 +600,13 @@
                     },
                     {
                         "name": "headers",
-                        "type": "array",
-                        "label": "Headers",
                         "spec": {
                             "name": "value",
-                            "label": "Header",
-                            "type": "collection",
                             "spec": [
                                 {
                                     "name": "name",
-                                    "label": "Name",
                                     "type": "text",
+                                    "label": "Name",
                                     "required": true,
                                     "validate": {
                                         "pattern": "^[-!#$%&'*+.^_`|~0-9A-Za-z]+$"
@@ -775,34 +614,38 @@
                                 },
                                 {
                                     "name": "value",
-                                    "label": "Value",
-                                    "type": "text"
+                                    "type": "text",
+                                    "label": "Value"
                                 }
-                            ]
-                        }
+                            ],
+                            "type": "collection",
+                            "label": "Header"
+                        },
+                        "type": "array",
+                        "label": "Headers"
                     },
                     {
                         "name": "queryParameters",
-                        "type": "array",
-                        "label": "Query parameters",
                         "spec": {
                             "name": "value",
-                            "label": "Parameter",
-                            "type": "collection",
                             "spec": [
                                 {
                                     "name": "name",
-                                    "label": "Name",
                                     "type": "text",
+                                    "label": "Name",
                                     "required": true
                                 },
                                 {
                                     "name": "value",
-                                    "label": "Value",
-                                    "type": "text"
+                                    "type": "text",
+                                    "label": "Value"
                                 }
-                            ]
-                        }
+                            ],
+                            "type": "collection",
+                            "label": "Parameter"
+                        },
+                        "type": "array",
+                        "label": "Query parameters"
                     },
                     {
                         "name": "contentType",
@@ -834,8 +677,8 @@
                         "type": "uinteger",
                         "label": "Timeout",
                         "validate": {
-                            "min": 1,
-                            "max": 300
+                            "max": 300,
+                            "min": 1
                         }
                     },
                     {
@@ -891,53 +734,53 @@
                 "interface": [
                     {
                         "name": "data",
-                        "label": "Data",
-                        "type": "any"
+                        "type": "any",
+                        "label": "Data"
                     },
                     {
                         "name": "statusCode",
-                        "label": "Status Code",
-                        "type": "number"
+                        "type": "number",
+                        "label": "Status Code"
                     },
                     {
                         "name": "headers",
-                        "label": "Headers",
-                        "type": "collection",
                         "spec": [
                             {
                                 "name": "content-length",
-                                "label": "Content-Length",
-                                "type": "text"
+                                "type": "text",
+                                "label": "Content-Length"
                             },
                             {
                                 "name": "content-encoding",
-                                "label": "Content-Encoding",
-                                "type": "text"
+                                "type": "text",
+                                "label": "Content-Encoding"
                             },
                             {
                                 "name": "content-type",
-                                "label": "Content-Type",
-                                "type": "text"
+                                "type": "text",
+                                "label": "Content-Type"
                             },
                             {
                                 "name": "server",
-                                "label": "Server",
-                                "type": "text"
+                                "type": "text",
+                                "label": "Server"
                             },
                             {
                                 "name": "cache-control",
-                                "label": "Cache-Control",
-                                "type": "text"
+                                "type": "text",
+                                "label": "Cache-Control"
                             },
                             {
                                 "name": "set-cookie",
-                                "label": "Set-Cookie",
-                                "type": "array",
                                 "spec": {
                                     "type": "text"
-                                }
+                                },
+                                "type": "array",
+                                "label": "Set-Cookie"
                             }
-                        ]
+                        ],
+                        "type": "collection",
+                        "label": "Headers"
                     }
                 ]
             }
@@ -952,8 +795,8 @@
             },
             "metadata": {
                 "designer": {
-                    "x": 324,
-                    "y": -200
+                    "x": 596,
+                    "y": -3
                 },
                 "restore": {},
                 "parameters": [
@@ -974,32 +817,41 @@
             }
         },
         {
-            "id": 21,
-            "module": "google-sheets:updateRow",
+            "id": 24,
+            "module": "google-sheets:addRow",
             "version": 2,
             "parameters": {
-                "__IMTCONN__": 9282635
+                "__IMTCONN__": 9377276
             },
             "mapper": {
                 "from": "drive",
                 "mode": "select",
                 "values": {
-                    "1": "{{20.name}}",
-                    "2": "{{20.phone}}",
-                    "3": "{{20.email}}",
-                    "4": "{{20.company}}"
+                    "1": "{{20.`구매일자`}}",
+                    "2": "{{20.`구매처`}}",
+                    "3": "{{20.`항목_요약`}}",
+                    "4": "{{20.`총_결제_금액`}}"
                 },
-                "sheetId": "contacts",
-                "rowNumber": "{{2.`__ROW_NUMBER__`}}",
-                "spreadsheetId": "/1Ca3Dkn1vaYPo-X-2973jP3Q_hH37RmpYLrKNerOQn9Y",
+                "sheetId": "처리결과",
+                "spreadsheetId": "/1mcdVCRUDpRcL9k5-7pQ3maS42PFDvY7gfC1xnDIUsjI",
                 "includesHeaders": true,
+                "insertDataOption": "INSERT_ROWS",
                 "useColumnHeaders": false,
-                "valueInputOption": "USER_ENTERED"
+                "valueInputOption": "USER_ENTERED",
+                "insertUnformatted": false
             },
             "metadata": {
                 "designer": {
-                    "x": 513,
-                    "y": 101
+                    "x": 805,
+                    "y": -227
+                },
+                "setupValidation": {
+                    "result": {
+                        "valid": true,
+                        "fields": []
+                    },
+                    "version": 1,
+                    "configuration": "fa8d88211364d374"
                 },
                 "restore": {
                     "expect": {
@@ -1010,15 +862,19 @@
                             "label": "Search by path"
                         },
                         "sheetId": {
-                            "label": "contacts"
+                            "label": "처리결과"
                         },
                         "spreadsheetId": {
                             "path": [
-                                "make_명함"
+                                "영수증 처리 입력(응답)"
                             ]
                         },
                         "includesHeaders": {
                             "label": "Yes"
+                        },
+                        "insertDataOption": {
+                            "mode": "chose",
+                            "label": "Insert rows"
                         },
                         "useColumnHeaders": {
                             "label": "No"
@@ -1026,6 +882,9 @@
                         "valueInputOption": {
                             "mode": "chose",
                             "label": "User entered"
+                        },
+                        "insertUnformatted": {
+                            "mode": "chose"
                         }
                     },
                     "parameters": {
@@ -1061,6 +920,12 @@
                         }
                     },
                     {
+                        "name": "insertUnformatted",
+                        "type": "boolean",
+                        "label": "Unformatted",
+                        "required": true
+                    },
+                    {
                         "name": "valueInputOption",
                         "type": "select",
                         "label": "Value input option",
@@ -1069,6 +934,17 @@
                             "enum": [
                                 "USER_ENTERED",
                                 "RAW"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "insertDataOption",
+                        "type": "select",
+                        "label": "Insert data option",
+                        "validate": {
+                            "enum": [
+                                "INSERT_ROWS",
+                                "OVERWRITE"
                             ]
                         }
                     },
@@ -1095,12 +971,6 @@
                         "name": "sheetId",
                         "type": "select",
                         "label": "Sheet Name",
-                        "required": true
-                    },
-                    {
-                        "name": "rowNumber",
-                        "type": "uinteger",
-                        "label": "Row number",
                         "required": true
                     },
                     {
@@ -1133,148 +1003,136 @@
                             {
                                 "name": "0",
                                 "type": "text",
-                                "label": "ID (A)"
+                                "label": "A"
                             },
                             {
                                 "name": "1",
                                 "type": "text",
-                                "label": "이름 (B)"
+                                "label": "B"
                             },
                             {
                                 "name": "2",
                                 "type": "text",
-                                "label": "전화번호 (C)"
+                                "label": "C"
                             },
                             {
                                 "name": "3",
                                 "type": "text",
-                                "label": "이메일 (D)"
+                                "label": "D"
                             },
                             {
                                 "name": "4",
                                 "type": "text",
-                                "label": "회사명 (E)"
+                                "label": "E"
                             },
                             {
                                 "name": "5",
                                 "type": "text",
-                                "label": "Image (F)"
+                                "label": "F"
                             },
                             {
                                 "name": "6",
                                 "type": "text",
-                                "label": "(G)"
+                                "label": "G"
                             },
                             {
                                 "name": "7",
                                 "type": "text",
-                                "label": "(H)"
+                                "label": "H"
                             },
                             {
                                 "name": "8",
                                 "type": "text",
-                                "label": "(I)"
+                                "label": "I"
                             },
                             {
                                 "name": "9",
                                 "type": "text",
-                                "label": "(J)"
+                                "label": "J"
                             },
                             {
                                 "name": "10",
                                 "type": "text",
-                                "label": "(K)"
+                                "label": "K"
                             },
                             {
                                 "name": "11",
                                 "type": "text",
-                                "label": "(L)"
+                                "label": "L"
                             },
                             {
                                 "name": "12",
                                 "type": "text",
-                                "label": "(M)"
+                                "label": "M"
                             },
                             {
                                 "name": "13",
                                 "type": "text",
-                                "label": "(N)"
+                                "label": "N"
                             },
                             {
                                 "name": "14",
                                 "type": "text",
-                                "label": "(O)"
+                                "label": "O"
                             },
                             {
                                 "name": "15",
                                 "type": "text",
-                                "label": "(P)"
+                                "label": "P"
                             },
                             {
                                 "name": "16",
                                 "type": "text",
-                                "label": "(Q)"
+                                "label": "Q"
                             },
                             {
                                 "name": "17",
                                 "type": "text",
-                                "label": "(R)"
+                                "label": "R"
                             },
                             {
                                 "name": "18",
                                 "type": "text",
-                                "label": "(S)"
+                                "label": "S"
                             },
                             {
                                 "name": "19",
                                 "type": "text",
-                                "label": "(T)"
+                                "label": "T"
                             },
                             {
                                 "name": "20",
                                 "type": "text",
-                                "label": "(U)"
+                                "label": "U"
                             },
                             {
                                 "name": "21",
                                 "type": "text",
-                                "label": "(V)"
+                                "label": "V"
                             },
                             {
                                 "name": "22",
                                 "type": "text",
-                                "label": "(W)"
+                                "label": "W"
                             },
                             {
                                 "name": "23",
                                 "type": "text",
-                                "label": "(X)"
+                                "label": "X"
                             },
                             {
                                 "name": "24",
                                 "type": "text",
-                                "label": "(Y)"
+                                "label": "Y"
                             },
                             {
                                 "name": "25",
                                 "type": "text",
-                                "label": "(Z)"
+                                "label": "Z"
                             }
                         ],
                         "type": "collection",
-                        "label": "Values in columns",
-                        "metadata": [
-                            [
-                                [
-                                    "ID",
-                                    "이름",
-                                    "전화번호",
-                                    "이메일",
-                                    "회사명",
-                                    "Image"
-                                ]
-                            ]
-                        ]
+                        "label": "Values in columns"
                     }
                 ]
             }
