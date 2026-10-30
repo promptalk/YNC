@@ -464,7 +464,7 @@
                     },
                     {
                         "name": "Authorization",
-                        "value": "Bearer J93JgrGNFVuyuYARyDDu06dYnvXjuZki"
+                        "value": "Bearer baze_OMBwO4CXBDIM2TgVrkfMK35BcqTu6HSA0E03S2"
                     }
                 ],
                 "timeout": "40",
@@ -479,8 +479,8 @@
             },
             "metadata": {
                 "designer": {
-                    "x": 400,
-                    "y": -236
+                    "x": 354,
+                    "y": -238
                 },
                 "setupValidation": {
                     "result": {
@@ -488,7 +488,7 @@
                         "fields": []
                     },
                     "version": 1,
-                    "configuration": "53856fced1f8667d"
+                    "configuration": "7a2ac368a99d7488"
                 },
                 "restore": {
                     "expect": {
@@ -795,7 +795,7 @@
             },
             "metadata": {
                 "designer": {
-                    "x": 596,
+                    "x": 568,
                     "y": -3
                 },
                 "restore": {},
@@ -842,8 +842,8 @@
             },
             "metadata": {
                 "designer": {
-                    "x": 805,
-                    "y": -227
+                    "x": 761,
+                    "y": -242
                 },
                 "setupValidation": {
                     "result": {
