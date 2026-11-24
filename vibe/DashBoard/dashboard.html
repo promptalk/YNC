@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>업무용 통합 대시보드</title>
+<script>
+  // 깜빡임 방지: 렌더링 전에 저장된 테마를 먼저 적용
+  (function () {
+    var t = localStorage.getItem('dash_theme');
+    if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    }
+  })();
+</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = { darkMode: 'class' };</script>
+<style type="text/tailwindcss">
+  @layer components {
+    .card { @apply bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm; }
+    .btn { @apply px-2.5 py-1.5 text-xs font-medium rounded-lg border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition; }
+    .btn-primary { @apply px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition; }
+    .btn-danger { @apply px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 transition; }
+    .icon-btn { @apply p-1 rounded-md text-sm leading-none text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-slate-100 dark:hover:bg-slate-700 transition; }
+    .input { @apply w-full rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500; }
+    .badge { @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-bold whitespace-nowrap; }
+    .chip { @apply text-xs font-semibold rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-0.5; }
+    .empty { @apply text-center text-sm text-slate-400 py-8; }
+  }
+</style>
+<style>
+  .overlay { display: none; }
+  .overlay.open { display: flex; }
+  .dark input, .dark select, .dark textarea { color-scheme: dark; }
+  /* 구글 캘린더 iframe 다크모드 반전 필터 */
+  .dark .cal-frame iframe { filter: invert(0.92) hue-rotate(180deg); }
+  .spin { border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 9999px; width: 14px; height: 14px; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .toast { animation: toast-in .2s ease-out; }
+</style>
+</head>
+<body class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-screen transition-colors">
+
+<!-- 헤더 -->
+<header class="sticky top-0 z-30 bg-white/90 dark:bg-slate-800/90 backdrop-blur border-b border-slate-200 dark:border-slate-700">
+  <div class="max-w-[1600px] mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+    <div class="mr-auto">
+      <h1 class="text-lg font-extrabold tracking-tight">📊 Workspace Dashboard</h1>
+      <p id="todayLabel" class="text-xs text-slate-500 dark:text-slate-400"></p>
+    </div>
+    <span id="syncLabel" class="text-xs text-slate-500 dark:text-slate-400"></span>
+    <span id="modeBadge" class="chip"></span>
+    <button class="btn" data-act="refresh" title="새로고침">⟳ 새로고침</button>
+    <button class="btn" data-act="settings" title="설정">⚙️ 설정</button>
+    <div class="inline-flex rounded-lg border border-slate-300 dark:border-slate-600 overflow-hidden text-xs font-semibold" role="group" aria-label="테마">
+      <button id="themeLight" data-act="theme" data-theme="light" class="px-3 py-1.5">☀️ Light</button>
+      <button id="themeDark" data-act="theme" data-theme="dark" class="px-3 py-1.5">🌙 Dark</button>
+    </div>
+  </div>
+</header>
+
+<!-- 연결 상태 안내 배너 (토큰 미입력 / 연결 오류) -->
+<div id="banner" class="hidden max-w-[1600px] mx-auto px-4 pt-4">
+  <div id="bannerBox" class="rounded-xl border px-4 py-3 text-sm flex flex-wrap items-center gap-3">
+    <span id="bannerMsg" class="flex-1 min-w-[12rem]"></span>
+    <button class="btn" data-act="refresh">다시 시도</button>
+    <button class="btn-primary" data-act="settings">⚙️ 설정</button>
+  </div>
+</div>
+
+<!-- 본문: 3단 그리드 -->
+<main class="max-w-[1600px] mx-auto p-4 grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+
+  <!-- 1열: 프로젝트 / 중요 메모 -->
+  <div class="space-y-4">
+    <section class="card p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-bold flex items-center gap-2">📁 진행중인 프로젝트 <span id="projectCount" class="chip">0</span></h2>
+        <button class="btn-primary" data-act="add" data-mod="projects">＋ 추가</button>
+      </div>
+      <div id="projectList" class="space-y-3 max-h-[28rem] overflow-y-auto pr-1"></div>
+    </section>
+
+    <section class="card p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-bold flex items-center gap-2">📌 중요 메모 <span id="memoCount" class="chip">0</span></h2>
+        <button class="btn-primary" data-act="add" data-mod="memos">＋ 추가</button>
+      </div>
+      <div id="memoList" class="space-y-3 max-h-[24rem] overflow-y-auto pr-1"></div>
+    </section>
+  </div>
+
+  <!-- 2열: 캘린더 -->
+  <div>
+    <section class="card p-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <h2 class="font-bold">📅 캘린더</h2>
+        <div class="flex items-center gap-2">
+          <div id="calModes" class="inline-flex rounded-lg border border-slate-300 dark:border-slate-600 overflow-hidden text-xs font-semibold">
+            <button data-act="cal-mode" data-mode="TASKS" class="px-2.5 py-1.5" title="진행중인 프로젝트(기간)와 마감일이 있는 구글 태스크를 월간 달력으로 보기">📋 프로젝트·할 일</button>
+            <button data-act="cal-mode" data-mode="WEEK" class="px-2.5 py-1.5">주간</button>
+            <button data-act="cal-mode" data-mode="MONTH" class="px-2.5 py-1.5">월간</button>
+            <button data-act="cal-mode" data-mode="AGENDA" class="px-2.5 py-1.5">일정</button>
+          </div>
+          <a href="https://calendar.google.com/calendar/u/0/r" target="_blank" rel="noopener" class="btn">↗ 구글 캘린더</a>
+        </div>
+      </div>
+      <p id="calHint" class="hidden mb-2 text-xs rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-800/60 px-3 py-2">
+        ℹ️ 구글 캘린더 임베드에는 <b>구글 태스크와 프로젝트가 표시되지 않습니다.</b> 이 항목들은
+        <button class="underline font-semibold" data-act="cal-mode" data-mode="TASKS">📋 프로젝트·할 일 보기</button>에서 확인하세요.
+      </p>
+      <div id="calendarBox" class="cal-frame h-[40rem] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"></div>
+    </section>
+  </div>
+
+  <!-- 3열: 구글 태스크 / 영업 메모 -->
+  <div class="space-y-4">
+    <section class="card p-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <h2 class="font-bold flex items-center gap-2">✅ 구글 태스크 <span id="taskCount" class="chip">0</span></h2>
+        <div class="flex items-center gap-2">
+          <select id="taskFilter" class="input !w-auto !py-1 !text-xs" aria-label="목록 필터"></select>
+          <a href="https://tasks.google.com/" target="_blank" rel="noopener" class="btn">↗ 구글 태스크 바로가기</a>
+        </div>
+      </div>
+      <form id="taskForm" class="grid grid-cols-6 gap-2 mb-3" autocomplete="off">
+        <input id="taskTitle" class="input col-span-6" type="text" placeholder="할 일을 빠르게 입력하세요" maxlength="200">
+        <input id="taskDue" class="input col-span-3" type="date" aria-label="마감일">
+        <select id="taskCategory" class="input col-span-2" aria-label="카테고리"></select>
+        <button class="btn-primary col-span-1" type="submit">추가</button>
+      </form>
+      <div id="taskList" class="space-y-1.5 max-h-[22rem] overflow-y-auto pr-1"></div>
+    </section>
+
+    <section class="card p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-bold flex items-center gap-2">💼 영업 메모 <span id="salesCount" class="chip">0</span></h2>
+        <button class="btn-primary" data-act="add" data-mod="sales">＋ 추가</button>
+      </div>
+      <div class="rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 text-white p-4 mb-3">
+        <div class="text-xs opacity-80">총 예상매출액</div>
+        <div id="salesTotal" class="text-2xl font-extrabold tracking-tight">₩0</div>
+      </div>
+      <div id="salesList" class="space-y-3 max-h-[24rem] overflow-y-auto pr-1"></div>
+    </section>
+  </div>
+</main>
+
+<!-- 로딩 스피너 -->
+<div id="spinner" class="overlay fixed top-16 left-1/2 -translate-x-1/2 z-[70] items-center gap-2 rounded-full bg-slate-900 text-white text-xs font-semibold px-4 py-2 shadow-lg">
+  <span class="spin"></span> 처리 중…
+</div>
+
+<!-- 토스트 -->
+<div id="toasts" class="fixed bottom-4 right-4 z-[80] flex flex-col gap-2"></div>
+
+<!-- 입력/수정 모달 -->
+<div id="modal" class="overlay fixed inset-0 z-50 items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+  <form id="modalForm" class="card w-full max-w-lg p-5 max-h-[90vh] overflow-y-auto" autocomplete="off" novalidate>
+    <h3 id="modalTitle" class="text-lg font-bold mb-4"></h3>
+    <div id="modalFields" class="grid grid-cols-2 gap-3"></div>
+    <p id="formError" class="mt-3 text-sm text-red-500 min-h-[1.25rem]"></p>
+    <div class="mt-2 flex justify-end gap-2">
+      <button type="button" id="testConn" class="btn hidden mr-auto" data-act="test-conn">🔌 연결 테스트</button>
+      <button type="button" class="btn" data-act="modal-close">취소</button>
+      <button type="submit" class="btn-primary">저장</button>
+    </div>
+  </form>
+</div>
+
+<!-- 삭제 확인 팝업 -->
+<div id="confirm" class="overlay fixed inset-0 z-[60] items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+  <div class="card w-full max-w-sm p-5">
+    <h3 class="text-base font-bold mb-2">삭제 확인</h3>
+    <p id="confirmMsg" class="text-sm text-slate-600 dark:text-slate-300 mb-4 whitespace-pre-line"></p>
+    <div class="flex justify-end gap-2">
+      <button id="confirmNo" class="btn">취소</button>
+      <button id="confirmYes" class="btn-danger">삭제</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+ * 설정 / 상수
+ * ============================================================ */
+const SHEET_ID = '1IJ4EqYpOI_6aj02jsyinTqEydPooS369ggHsSLMWOzU'; // 참고용 (실제 접근은 GAS가 수행)
+const LS = { theme: 'dash_theme', data: 'dash_data_v1', cfg: 'dash_config_v1' };
+const PREFIX = { projects: 'PRJ_', memos: 'MEM_', sales: 'SAL_', tasks: 'TSK_' };
+const PRIORITY_RANK = { '상': 0, '중': 1, '하': 2 };
+
+/* 배포된 GAS Web App URL (기본값). 설정에서 비우면 브라우저 로컬 저장 모드로 동작한다. */
+const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbwtR9zq2EB60zYVurah5jhEP-jBYaULvhHaG1RORlOtslUZJM_-fH7XujlVWx1Cq4ls/exec';
+const isGasUrl = u => /^https:\/\/script\.google(usercontent)?\.com\//i.test(u);
+
+/* 사용자 설정: GAS Web App URL, API 토큰, 캘린더 임베드 URL (설정 모달에서 변경) */
+const config = Object.assign({ gasUrl: DEFAULT_GAS_URL, gasToken: '', calendarUrl: '', calMode: 'TASKS' },
+  (() => { try { return JSON.parse(localStorage.getItem(LS.cfg) || '{}'); } catch (e) { return {}; } })());
+const saveConfig = () => localStorage.setItem(LS.cfg, JSON.stringify(config));
+
+/* ============================================================
+ * 유틸
+ * ============================================================ */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const won = n => '₩' + (Number(n) || 0).toLocaleString('ko-KR');
+const genId = mod => PREFIX[mod] + Date.now() + Math.floor(Math.random() * 100);
+
+const pad = n => String(n).padStart(2, '0');
+const toYMD = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+/* 'YYYY-MM-DD' → 로컬 자정 Date (타임존 오차 방지) */
+const parseYMD = s => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || '');
+  return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+};
+const todayStart = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; };
+const diffDays = ymd => {
+  const d = parseYMD(ymd);
+  return d ? Math.round((d - todayStart()) / 86400000) : null;
+};
+
+/* ============================================================
+ * 토스트 / 스피너
+ * ============================================================ */
+let busyCount = 0;
+const setBusy = on => {
+  busyCount = Math.max(0, busyCount + (on ? 1 : -1));
+  $('#spinner').classList.toggle('open', busyCount > 0);
+};
+function toast(msg, type = 'ok') {
+  const colors = { ok: 'bg-emerald-600', err: 'bg-red-600', info: 'bg-slate-700' };
+  const el = document.createElement('div');
+  el.className = `toast ${colors[type] || colors.info} text-white text-sm font-medium rounded-lg px-4 py-2.5 shadow-lg max-w-xs`;
+  el.textContent = msg;
+  $('#toasts').appendChild(el);
+  setTimeout(() => { el.style.transition = 'opacity .3s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, 2800);
+}
+
+/* ============================================================
+ * 데이터 계층
+ *  - gasUrl 미설정: localStorage 시뮬레이션 (Step 1)
+ *  - gasUrl 설정  : GAS Web App 과 fetch 통신 (Step 3)
+ * ============================================================ */
+const state = { projects: [], memos: [], sales: [], tasks: [], taskLists: [] };
+const isRemote = () => !!config.gasUrl;
+
+function seedData() {
+  const day = n => { const d = todayStart(); d.setDate(d.getDate() + n); return toYMD(d); };
+  return {
+    projects: [
+      { id: 'PRJ_1795241', title: '충남 웰니스 관광', content: '사업계획서 제출', startDate: '2026-11-01', endDate: '2026-11-30' },
+      { id: 'PRJ_1795301', title: '웹사이트 리뉴얼', content: '디자인 시안 최종 확정 및 퍼블리싱 착수', startDate: day(-14), endDate: day(2) },
+      { id: 'PRJ_1795302', title: '연간 성과 보고서', content: '부서별 실적 취합 후 보고서 작성', startDate: day(-5), endDate: day(21) },
+      { id: 'PRJ_1795303', title: '파트너사 계약 갱신', content: '계약 조건 검토 및 서명', startDate: day(-30), endDate: day(-2) }
+    ],
+    memos: [
+      { id: 'MEM_1795242', title: '4분기 예산안', content: '사업비 정산 마감', startDate: '2026-11-15', endDate: '2026-12-05' },
+      { id: 'MEM_1795311', title: '보안 지침 안내', content: '외부 메일 첨부파일은 반드시 사전 검사 후 열람할 것', startDate: day(-3), endDate: day(10) }
+    ],
+    sales: [
+      { id: 'SAL_1795243', title: 'OO 지자체 컨설팅', content: '2차 미팅 완료', priority: '상', amount: 15000000 },
+      { id: 'SAL_1795321', title: '△△기업 워크숍 용역', content: '견적서 발송, 회신 대기', priority: '중', amount: 6000000 },
+      { id: 'SAL_1795322', title: '□□협회 교육 문의', content: '초기 문의 단계', priority: '하', amount: 2500000 }
+    ],
+    taskLists: [{ id: 'default', title: '내 할 일' }, { id: 'work', title: '업무' }, { id: 'personal', title: '개인' }],
+    tasks: [
+      { id: 'TSK_1', title: '사업계획서 초안 검토', dueDate: day(1), category: 'work', status: 'needsAction' },
+      { id: 'TSK_2', title: '견적서 회신 확인', dueDate: day(0), category: 'work', status: 'needsAction' },
+      { id: 'TSK_3', title: '정기 건강검진 예약', dueDate: day(7), category: 'personal', status: 'needsAction' },
+      { id: 'TSK_4', title: '주간 보고 제출', dueDate: day(-1), category: 'default', status: 'completed' }
+    ]
+  };
+}
+
+function persistLocal() {
+  localStorage.setItem(LS.data, JSON.stringify(state));
+}
+
+function loadLocal() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(LS.data) || 'null'); } catch (e) { d = null; }
+  Object.assign(state, d || seedData());
+  if (!d) persistLocal();
+}
+
+/* GAS 응답 파싱: JSON 이 아니면(로그인/권한 안내 HTML 등) 원인을 안내한다 */
+async function parseGasResponse(res) {
+  if (!res.ok) throw new Error('서버 응답 오류 (' + res.status + ')');
+  let json;
+  try { json = await res.json(); }
+  catch (e) { throw new Error('서버 응답이 올바르지 않습니다. 웹 앱 배포 권한(액세스: 모든 사용자)과 URL(/exec)을 확인하세요.'); }
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+async function gasGet(baseUrl, token) {
+  baseUrl = baseUrl || config.gasUrl;
+  token = token === undefined ? config.gasToken : token;
+  // credentials 는 보내지 않는다 (GAS 의 CORS 응답은 Allow-Origin: * 이므로 쿠키 전송 시 차단됨)
+  const q = 'action=list&token=' + encodeURIComponent(token || '');
+  const url = baseUrl + (baseUrl.includes('?') ? '&' : '?') + q;
+  let res;
+  try { res = await fetch(url, { redirect: 'follow' }); }
+  catch (e) { throw new Error('서버에 연결할 수 없습니다. 인터넷 연결과 웹 앱 URL, 배포 권한(액세스: 모든 사용자)을 확인하세요.'); }
+  return parseGasResponse(res);
+}
+
+async function gasPost(payload) {
+  // text/plain 으로 보내 CORS preflight(OPTIONS)를 회피한다 (GAS 웹앱 제약)
+  let res;
+  try {
+    res = await fetch(config.gasUrl, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(Object.assign({ token: config.gasToken || '' }, payload))
+    });
+  } catch (e) { throw new Error('서버에 연결할 수 없습니다. 인터넷 연결을 확인하세요.'); }
+  return parseGasResponse(res);
+}
+
+/* 연결 상태 배너 */
+function showBanner(msg, kind) {
+  const box = $('#bannerBox');
+  const tone = kind === 'warn'
+    ? 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700/60 dark:bg-amber-900/20 dark:text-amber-100'
+    : 'border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-200';
+  box.className = 'rounded-xl border px-4 py-3 text-sm flex flex-wrap items-center gap-3 ' + tone;
+  $('#bannerMsg').textContent = msg;
+  $('#banner').classList.remove('hidden');
+}
+const hideBanner = () => $('#banner').classList.add('hidden');
+
+/* 연동 모드에서 서버 데이터를 아직 못 불러온 상태(샘플/로컬 데이터를 보여주지 않기 위함) */
+let remoteReady = false;
+let loading = false;
+const EMPTY_STATE = () => ({ projects: [], memos: [], sales: [], tasks: [], taskLists: [] });
+
+function setSyncLabel(text) { $('#syncLabel').textContent = text || ''; }
+const timeLabel = () => new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+/* 전체 데이터 불러오기 */
+async function loadAll(silent) {
+  if (loading) return;
+  loading = true;
+  setBusy(true);
+  try {
+    if (isRemote()) {
+      if (!config.gasToken) {
+        // 토큰이 없으면 서버 요청 자체를 하지 않는다
+        remoteReady = false;
+        Object.assign(state, EMPTY_STATE());
+        showBanner('Google 연동을 위해 API 토큰이 필요합니다. 설정에서 토큰을 입력하세요. (GAS 편집기에서 setupToken() 실행 후 실행 로그에서 확인)', 'warn');
+        setSyncLabel('');
+        return;
+      }
+      const d = await gasGet();
+      Object.assign(state, EMPTY_STATE());
+      ['projects', 'memos', 'sales', 'tasks', 'taskLists'].forEach(k => { state[k] = Array.isArray(d[k]) ? d[k] : []; });
+      remoteReady = true;
+      hideBanner();
+      (d.warnings || []).forEach(w => toast(w, 'err'));
+      setSyncLabel('동기화 ' + timeLabel());
+      if (!silent) toast('서버 데이터를 불러왔습니다', 'info');
+    } else {
+      remoteReady = true;
+      hideBanner();
+      loadLocal();
+      setSyncLabel('');
+      if (!silent) toast('로컬 데이터를 불러왔습니다', 'info');
+    }
+  } catch (e) {
+    // 서버 데이터가 아닌 로컬 샘플을 보여주면 오해를 부르므로, 이전에 받은 데이터를 유지하고 오류를 알린다
+    showBanner('서버에서 데이터를 불러오지 못했습니다: ' + e.message, 'error');
+    setSyncLabel('동기화 실패');
+    toast('불러오기 실패: ' + e.message, 'err');
+  } finally {
+    loading = false;
+    setBusy(false);
+    updateModeBadge();
+    renderAll();
+  }
+}
+
+/* C·R·U·D 공통 처리. 성공 시 true 반환 */
+async function mutate(action, mod, data) {
+  if (isRemote() && !remoteReady) {
+    toast('서버에 연결되지 않아 저장할 수 없습니다. 연결 상태를 확인하세요.', 'err');
+    return false;
+  }
+  setBusy(true);
+  try {
+    let saved = data;
+    if (isRemote()) {
+      const r = await gasPost({ action, module: mod, data });
+      if (r.data && action !== 'delete') saved = Object.assign({}, data, r.data);
+    }
+    const list = state[mod];
+    if (action === 'create') list.push(saved);
+    else if (action === 'update') {
+      // 서버가 id 를 바꿀 수 있으므로(태스크 목록 이동) 요청 시점의 id 로 찾는다
+      const i = list.findIndex(x => x.id === data.id);
+      if (i >= 0) list[i] = Object.assign(list[i], saved);
+    } else if (action === 'delete') {
+      const i = list.findIndex(x => x.id === data.id);
+      if (i >= 0) list.splice(i, 1);
+    }
+    if (!isRemote()) persistLocal();
+    else setSyncLabel('동기화 ' + timeLabel());
+    renderAll();
+    return true;
+  } catch (e) {
+    toast('저장 실패: ' + e.message, 'err');
+    return false;
+  } finally {
+    setBusy(false);
+  }
+}
+
+/* ============================================================
+ * 렌더링
+ * ============================================================ */
+const actionBtns = (mod, id) => `
+  <button class="icon-btn" data-act="edit" data-mod="${mod}" data-id="${esc(id)}" title="수정" aria-label="수정">✏️</button>
+  <button class="icon-btn" data-act="del" data-mod="${mod}" data-id="${esc(id)}" title="삭제" aria-label="삭제">🗑️</button>`;
+
+const period = (s, e) => `${esc(s || '-')} ~ ${esc(e || '-')}`;
+
+/* D-Day 라벨/배지 스타일 */
+function ddayInfo(endDate) {
+  const n = diffDays(endDate);
+  if (n === null) return { n: null, label: '기한없음', cls: 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300' };
+  if (n < 0) return { n, label: `D+${-n}`, cls: 'bg-slate-300 text-slate-600 dark:bg-slate-600 dark:text-slate-200' };
+  const label = n === 0 ? 'D-Day' : `D-${n}`;
+  if (n <= 3) return { n, label, cls: 'bg-red-600 text-white animate-pulse' };
+  if (n <= 7) return { n, label, cls: 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200' };
+  return { n, label, cls: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200' };
+}
+
+function renderProjects() {
+  // 마감 임박순 오름차순. 마감이 지난 항목은 뒤로, 기한 없는 항목은 맨 뒤로
+  const rank = p => { const n = diffDays(p.endDate); return n === null ? [2, 0] : n < 0 ? [1, -n] : [0, n]; };
+  const list = [...state.projects].sort((a, b) => {
+    const ra = rank(a), rb = rank(b);
+    return ra[0] - rb[0] || ra[1] - rb[1];
+  });
+  $('#projectCount').textContent = list.length;
+  $('#projectList').innerHTML = list.length ? list.map(p => {
+    const d = ddayInfo(p.endDate);
+    const urgent = d.n !== null && d.n >= 0 && d.n <= 3;
+    const overdue = d.n !== null && d.n < 0;
+    return `
+    <article class="rounded-xl border p-3 ${urgent ? 'border-red-300 bg-red-50/60 dark:border-red-800 dark:bg-red-950/30' : 'border-slate-200 dark:border-slate-700'} ${overdue ? 'opacity-60' : ''}">
+      <div class="flex items-start gap-2">
+        <h3 class="font-semibold text-sm flex-1 break-words">${esc(p.title)}</h3>
+        <span class="badge ${d.cls}">${d.label}</span>
+      </div>
+      <p class="text-sm text-slate-600 dark:text-slate-300 mt-1 whitespace-pre-line break-words">${esc(p.content)}</p>
+      <div class="flex items-center justify-between mt-2">
+        <span class="text-xs text-slate-500 dark:text-slate-400">${period(p.startDate, p.endDate)}</span>
+        <div class="flex">${actionBtns('projects', p.id)}</div>
+      </div>
+    </article>`;
+  }).join('') : '<div class="empty">진행중인 프로젝트가 없습니다</div>';
+}
+
+function renderMemos() {
+  const list = [...state.memos].sort((a, b) => (a.endDate || '9999').localeCompare(b.endDate || '9999'));
+  $('#memoCount').textContent = list.length;
+  $('#memoList').innerHTML = list.length ? list.map(m => {
+    const n = diffDays(m.endDate);
+    const expired = n !== null && n < 0;
+    return `
+    <article class="relative rounded-xl border p-3 pt-4 ${expired ? 'opacity-50 border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800' : 'border-amber-300 bg-amber-50 dark:border-amber-700/60 dark:bg-amber-900/20'}">
+      <span class="absolute -top-2 left-3 text-base" title="고정됨">📌</span>
+      <div class="flex items-start gap-2">
+        <h3 class="font-semibold text-sm flex-1 break-words">${esc(m.title)}</h3>
+        ${expired ? '<span class="badge bg-slate-300 text-slate-600 dark:bg-slate-600 dark:text-slate-200">만료</span>' : ''}
+      </div>
+      <p class="text-sm text-slate-700 dark:text-slate-200 mt-1 whitespace-pre-line break-words">${esc(m.content)}</p>
+      <div class="flex items-center justify-between mt-2">
+        <span class="text-xs text-slate-500 dark:text-slate-400">적용 ${period(m.startDate, m.endDate)}</span>
+        <div class="flex">${actionBtns('memos', m.id)}</div>
+      </div>
+    </article>`;
+  }).join('') : '<div class="empty">등록된 중요 메모가 없습니다</div>';
+}
+
+const PRIORITY_STYLE = {
+  '상': 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-200',
+  '중': 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200',
+  '하': 'bg-sky-100 text-sky-700 dark:bg-sky-900/50 dark:text-sky-200'
+};
+
+function renderSales() {
+  const list = [...state.sales].sort((a, b) =>
+    (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9) || (Number(b.amount) || 0) - (Number(a.amount) || 0));
+  const total = state.sales.reduce((s, x) => s + (Number(x.amount) || 0), 0);
+  $('#salesCount').textContent = list.length;
+  $('#salesTotal').textContent = won(total);
+  $('#salesList').innerHTML = list.length ? list.map(s => `
+    <article class="rounded-xl border border-slate-200 dark:border-slate-700 p-3">
+      <div class="flex items-start gap-2">
+        <span class="badge ${PRIORITY_STYLE[s.priority] || PRIORITY_STYLE['하']}">중요도 ${esc(s.priority || '-')}</span>
+        <h3 class="font-semibold text-sm flex-1 break-words">${esc(s.title)}</h3>
+      </div>
+      <p class="text-sm text-slate-600 dark:text-slate-300 mt-1 whitespace-pre-line break-words">${esc(s.content)}</p>
+      <div class="flex items-center justify-between mt-2">
+        <span class="text-sm font-bold text-indigo-600 dark:text-indigo-300">${won(s.amount)}</span>
+        <div class="flex">${actionBtns('sales', s.id)}</div>
+      </div>
+    </article>`).join('') : '<div class="empty">등록된 영업 메모가 없습니다</div>';
+}
+
+const listTitle = id => (state.taskLists.find(l => l.id === id) || {}).title || '기타';
+
+function renderTasks() {
+  const options = list => list.map(l => `<option value="${esc(l.id)}">${esc(l.title)}</option>`).join('');
+  const filter = $('#taskFilter').value || 'all';
+  const curCat = $('#taskCategory').value;
+  $('#taskCategory').innerHTML = options(state.taskLists);
+  if (state.taskLists.some(l => l.id === curCat)) $('#taskCategory').value = curCat;
+  $('#taskFilter').innerHTML = '<option value="all">전체 목록</option>' + options(state.taskLists);
+  $('#taskFilter').value = state.taskLists.some(l => l.id === filter) ? filter : 'all';
+
+  const f = $('#taskFilter').value;
+  // 미완료 우선, 이후 마감일 오름차순(없으면 뒤)
+  const list = state.tasks.filter(t => f === 'all' || t.category === f).sort((a, b) =>
+    (a.status === 'completed') - (b.status === 'completed') || (a.dueDate || '9999').localeCompare(b.dueDate || '9999'));
+  $('#taskCount').textContent = list.filter(t => t.status !== 'completed').length;
+  $('#taskList').innerHTML = list.length ? list.map(t => {
+    const done = t.status === 'completed';
+    const n = diffDays(t.dueDate);
+    const late = !done && n !== null && n < 0;
+    const dueCls = late ? 'text-red-500 font-semibold' : 'text-slate-500 dark:text-slate-400';
+    return `
+    <div class="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+      <input type="checkbox" class="h-4 w-4 rounded accent-indigo-600 cursor-pointer" data-act="task-toggle" data-id="${esc(t.id)}" ${done ? 'checked' : ''} aria-label="완료 토글">
+      <div class="flex-1 min-w-0">
+        <div class="text-sm break-words ${done ? 'line-through text-slate-400' : ''}">${esc(t.title)}</div>
+        <div class="text-xs ${dueCls}">${t.dueDate ? '📆 ' + esc(t.dueDate) + (late ? ' (지연)' : '') : '마감일 없음'} · <span class="chip">${esc(listTitle(t.category))}</span></div>
+      </div>
+      ${actionBtns('tasks', t.id)}
+    </div>`;
+  }).join('') : '<div class="empty">할 일이 없습니다 🎉</div>';
+}
+
+/* ---- 캘린더: 할 일(구글 태스크) 월간 보기 ---- */
+let calCursor = (() => { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d; })();
+const DOW_KO = ['월', '화', '수', '목', '금', '토', '일']; // 임베드(wkst=2)와 동일하게 월요일 시작
+
+/* 프로젝트 기간 막대: 주(week)별로 겹치지 않게 줄(lane)을 배정한다 */
+const LANE_H = 18;   // 막대 한 줄 높이(px, 막대 16 + 간격 2)
+const BAR_TOP = 26;  // 날짜 숫자 아래 시작 위치(px): 칸 패딩 4 + 날짜 20 + 여백 2
+
+function projectWeekBars(gridStart) {
+  const idx = d => Math.round((d - gridStart) / 86400000);
+  const items = [];
+  state.projects.forEach(p => {
+    let s = parseYMD(p.startDate), e = parseYMD(p.endDate);
+    if (!s && !e) return;
+    s = s || e; e = e || s; // 시작일만/마감일만 있으면 하루짜리로 표시
+    if (s > e) { const t = s; s = e; e = t; }
+    const si = idx(s), ei = idx(e);
+    if (ei < 0 || si > 41) return; // 현재 달력 범위 밖
+    items.push({ p, si, ei });
+  });
+  const weeks = [];
+  for (let w = 0; w < 6; w++) {
+    const segs = [];
+    items.forEach(it => {
+      if (it.ei < w * 7 || it.si > w * 7 + 6) return;
+      segs.push({ p: it.p, c0: Math.max(it.si, w * 7) - w * 7, c1: Math.min(it.ei, w * 7 + 6) - w * 7,
+        cutL: it.si < w * 7, cutR: it.ei > w * 7 + 6 });
+    });
+    segs.sort((a, b) => a.c0 - b.c0 || (b.c1 - b.c0) - (a.c1 - a.c0));
+    const lanes = []; // 각 줄의 마지막 점유 열
+    segs.forEach(sg => {
+      let l = lanes.findIndex(end => end < sg.c0);
+      if (l < 0) { l = lanes.length; lanes.push(-1); }
+      lanes[l] = sg.c1; sg.lane = l;
+    });
+    weeks.push({ segs, laneCount: lanes.length });
+  }
+  return weeks;
+}
+
+function projectBarHtml(sg) {
+  const p = sg.p, d = ddayInfo(p.endDate);
+  const tone = d.n !== null && d.n < 0 ? 'bg-slate-300 text-slate-600 dark:bg-slate-600 dark:text-slate-200'
+    : d.n !== null && d.n <= 3 ? 'bg-red-600 text-white' : 'bg-emerald-600 text-white';
+  const span = sg.c1 - sg.c0 + 1;
+  const round = (sg.cutL ? '' : 'rounded-l ') + (sg.cutR ? '' : 'rounded-r');
+  return `<button type="button" data-act="edit" data-mod="projects" data-id="${esc(p.id)}"
+    title="${esc(p.title)} · ${esc(p.startDate || '-')} ~ ${esc(p.endDate || '-')} (${d.label})"
+    class="pointer-events-auto absolute truncate text-left text-[11px] leading-4 h-4 px-1 font-semibold ${round} ${tone}"
+    style="left:calc(${sg.c0} * 100% / 7 + 1px);width:calc(${span} * 100% / 7 - 2px);top:${BAR_TOP + sg.lane * LANE_H}px">${sg.cutL ? '◂ ' : ''}${esc(p.title)}${sg.cutR ? ' ▸' : ''}</button>`;
+}
+
+function taskChipHtml(t, ymd, todayYmd) {
+  const done = t.status === 'completed';
+  const late = !done && ymd < todayYmd;
+  const tone = done ? 'bg-slate-100 text-slate-400 line-through dark:bg-slate-700/60 dark:text-slate-500'
+    : late ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200'
+    : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-100';
+  return `<button type="button" data-act="edit" data-mod="tasks" data-id="${esc(t.id)}" title="${esc(t.title)} · ${esc(listTitle(t.category))}"
+    class="block w-full truncate text-left text-[11px] leading-4 rounded px-1 mb-0.5 ${tone}">${esc(t.title)}</button>`;
+}
+
+function renderTaskCalendar() {
+  const box = $('#calendarBox');
+  const y = calCursor.getFullYear(), m = calCursor.getMonth();
+  const start = new Date(y, m, 1 - ((new Date(y, m, 1).getDay() + 6) % 7));
+  const todayYmd = toYMD(new Date());
+  const showTasks = config.calTasks !== false, showProjects = config.calProjects !== false;
+
+  const byDate = {};
+  let noDue = 0;
+  if (showTasks) state.tasks.forEach(t => {
+    if (!t.dueDate) { if (t.status !== 'completed') noDue++; return; }
+    (byDate[t.dueDate] = byDate[t.dueDate] || []).push(t);
+  });
+  const weekBars = showProjects ? projectWeekBars(start) : Array.from({ length: 6 }, () => ({ segs: [], laneCount: 0 }));
+  const noDate = showProjects ? state.projects.filter(p => !p.startDate && !p.endDate).length : 0;
+
+  let rows = '';
+  for (let w = 0; w < 6; w++) {
+    const wb = weekBars[w];
+    const pad = wb.laneCount * LANE_H; // 막대가 차지하는 높이만큼 칩을 아래로 민다
+    let cells = '';
+    for (let c = 0; c < 7; c++) {
+      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + w * 7 + c);
+      const ymd = toYMD(d);
+      const dayCls = ymd === todayYmd ? 'bg-indigo-600 text-white'
+        : c === 6 ? 'text-red-500' : c === 5 ? 'text-sky-500' : 'text-slate-600 dark:text-slate-300';
+      const items = (byDate[ymd] || []).sort((a, b) => (a.status === 'completed') - (b.status === 'completed'));
+      cells += `<div role="button" tabindex="0" data-act="cal-add" data-date="${ymd}" title="${ymd} 에 할 일 추가"
+        class="border-t border-l border-slate-200 dark:border-slate-700 p-1 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/40 ${d.getMonth() === m ? '' : 'opacity-40'}">
+        <div class="mb-0.5"><span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full text-[11px] font-semibold ${dayCls}">${d.getDate()}</span></div>
+        ${pad ? `<div style="height:${pad}px"></div>` : ''}${items.map(t => taskChipHtml(t, ymd, todayYmd)).join('')}</div>`;
+    }
+    // 주(行)는 내용(막대 줄 수 + 할 일 칩)만큼 늘어나고, 전체가 넘치면 달력 영역이 스크롤된다
+    rows += `<div class="relative grid grid-cols-7">${cells}
+      <div class="absolute inset-0 pointer-events-none">${wb.segs.map(projectBarHtml).join('')}</div></div>`;
+  }
+
+  const toggle = (key, on, label, tone) => `<button type="button" data-act="cal-toggle" data-key="${key}" aria-pressed="${on}"
+    class="text-[11px] font-semibold rounded-full px-2 py-0.5 border ${on ? tone : 'border-slate-300 text-slate-400 line-through dark:border-slate-600'}">${label}</button>`;
+  const notes = [noDue ? `마감일 없는 할 일 ${noDue}개` : '', noDate ? `기간 없는 프로젝트 ${noDate}개` : ''].filter(Boolean).join(' · ');
+
+  box.innerHTML = `<div class="h-full flex flex-col bg-white dark:bg-slate-800">
+    <div class="flex flex-wrap items-center gap-2 px-3 py-2 border-b border-slate-200 dark:border-slate-700">
+      <button class="btn" data-act="cal-nav" data-dir="-1" aria-label="이전 달">‹</button>
+      <span class="font-bold text-sm min-w-[7rem] text-center">${y}년 ${m + 1}월</span>
+      <button class="btn" data-act="cal-nav" data-dir="1" aria-label="다음 달">›</button>
+      <button class="btn" data-act="cal-nav" data-dir="0">오늘</button>
+      <span class="ml-2 flex gap-1">
+        ${toggle('calProjects', showProjects, '📁 프로젝트', 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200')}
+        ${toggle('calTasks', showTasks, '✅ 할 일', 'border-indigo-500 bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200')}
+      </span>
+      <span class="ml-auto text-[11px] text-slate-500 dark:text-slate-400">${notes}</span>
+    </div>
+    <div class="grid grid-cols-7 text-center text-[11px] font-semibold text-slate-500 dark:text-slate-400 py-1">
+      ${DOW_KO.map((n, i) => `<div class="${i === 6 ? 'text-red-500' : i === 5 ? 'text-sky-500' : ''}">${n}</div>`).join('')}
+    </div>
+    <div class="grid flex-1 min-h-0 overflow-y-auto border-r border-b border-slate-200 dark:border-slate-700" style="grid-template-rows:repeat(6,minmax(min-content,1fr))">${rows}</div>
+  </div>`;
+}
+
+/* ---- 캘린더 ---- */
+function renderCalendar() {
+  const box = $('#calendarBox');
+  $$('#calModes button').forEach(b => {
+    const on = b.dataset.mode === config.calMode;
+    b.className = 'px-2.5 py-1.5 ' + (on ? 'bg-indigo-600 text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-700');
+  });
+  $('#calHint').classList.toggle('hidden', config.calMode === 'TASKS');
+  if (config.calMode === 'TASKS') { renderTaskCalendar(); return; }
+  if (!config.calendarUrl) {
+    box.innerHTML = `<div class="h-full flex flex-col items-center justify-center gap-3 text-center p-6 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-300">
+      <div class="text-4xl">📅</div>
+      <p class="text-sm">구글 캘린더 임베드 URL이 설정되지 않았습니다.<br>설정에서 캘린더 URL(또는 이메일 주소)을 입력하세요.</p>
+      <button class="btn-primary" data-act="settings">⚙️ 캘린더 설정</button></div>`;
+    return;
+  }
+  let src = config.calendarUrl.trim();
+  // 이메일/캘린더 ID만 입력한 경우 임베드 URL로 변환
+  if (!/^https?:\/\//i.test(src)) src = 'https://calendar.google.com/calendar/embed?src=' + encodeURIComponent(src);
+  try {
+    const u = new URL(src);
+    u.searchParams.set('mode', config.calMode);
+    u.searchParams.set('hl', 'ko');
+    u.searchParams.set('wkst', '2');
+    src = u.toString();
+  } catch (e) { /* 잘못된 URL은 그대로 사용 */ }
+  box.innerHTML = `<iframe src="${esc(src)}" title="Google Calendar" class="w-full h-full border-0" loading="lazy"></iframe>`;
+}
+
+function renderAll() {
+  renderProjects(); renderMemos(); renderSales(); renderTasks();
+  // 임베드(iframe)는 매번 다시 그리면 깜빡이므로 '할 일' 보기일 때만 갱신
+  if (config.calMode === 'TASKS') renderTaskCalendar();
+}
+
+/* ============================================================
+ * 모달 (추가 / 수정 / 설정)
+ * ============================================================ */
+const FIELD_DEFS = {
+  projects: { label: '프로젝트', fields: [
+    { k: 'title', l: '프로젝트 제목', t: 'text', req: true, full: true },
+    { k: 'content', l: '간단 설명', t: 'textarea', full: true },
+    { k: 'startDate', l: '시작일', t: 'date' },
+    { k: 'endDate', l: '마감일', t: 'date', req: true }] },
+  memos: { label: '중요 메모', fields: [
+    { k: 'title', l: '메모 제목', t: 'text', req: true, full: true },
+    { k: 'content', l: '메모 내용', t: 'textarea', req: true, full: true },
+    { k: 'startDate', l: '적용 시작일', t: 'date' },
+    { k: 'endDate', l: '적용 종료일', t: 'date' }] },
+  sales: { label: '영업 메모', fields: [
+    { k: 'title', l: '영업 건명', t: 'text', req: true, full: true },
+    { k: 'content', l: '고객사 / 딜 상세 내용', t: 'textarea', full: true },
+    { k: 'priority', l: '중요도', t: 'select', opts: ['상', '중', '하'], req: true },
+    { k: 'amount', l: '예상 매출액 (원)', t: 'number', req: true }] },
+  tasks: { label: '할 일', fields: [
+    { k: 'title', l: '할 일', t: 'text', req: true, full: true },
+    { k: 'dueDate', l: '마감일', t: 'date' },
+    { k: 'category', l: '카테고리(목록)', t: 'select', dyn: 'taskLists' }] },
+  settings: { label: '설정', fields: [
+    { k: 'gasUrl', l: 'GAS Web App URL (비워두면 브라우저 로컬 저장 모드)', t: 'text', full: true, ph: 'https://script.google.com/macros/s/.../exec' },
+    { k: 'gasToken', l: 'API 토큰 (GAS 편집기에서 setupToken() 실행 시 로그에 출력)', t: 'password', full: true, ph: '토큰 입력' },
+    { k: 'calendarUrl', l: '구글 캘린더 임베드 URL 또는 캘린더 ID(이메일)', t: 'text', full: true, ph: 'https://calendar.google.com/calendar/embed?src=...' }] }
+};
+
+let modalCtx = null; // { mod, id|null }
+
+function openModal(mod, id, preset) {
+  const def = FIELD_DEFS[mod];
+  const item = id ? state[mod].find(x => String(x.id) === String(id)) : null;
+  const src = mod === 'settings' ? config : (item || preset || {});
+  modalCtx = { mod, id: item ? item.id : null };
+  $('#modalTitle').textContent = mod === 'settings' ? '⚙️ 설정' : `${def.label} ${item ? '수정' : '추가'}`;
+  $('#formError').textContent = '';
+  $('#testConn').classList.toggle('hidden', mod !== 'settings');
+  $('#modalFields').innerHTML = def.fields.map(f => {
+    const val = src[f.k] ?? (f.t === 'select' && !f.dyn ? f.opts[1] || f.opts[0] : '');
+    const base = `id="f_${f.k}" name="${f.k}" class="input"`;
+    let ctl;
+    if (f.t === 'textarea') ctl = `<textarea ${base} rows="3">${esc(val)}</textarea>`;
+    else if (f.t === 'select') {
+      const opts = f.dyn ? state[f.dyn].map(o => [o.id, o.title]) : f.opts.map(o => [o, o]);
+      ctl = `<select ${base}>${opts.map(([v, t]) => `<option value="${esc(v)}" ${String(v) === String(val) ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
+    } else ctl = `<input ${base} type="${f.t}" value="${esc(val)}" ${f.t === 'number' ? 'min="0" step="1"' : ''} ${f.ph ? `placeholder="${esc(f.ph)}"` : ''}>`;
+    return `<label class="${f.full ? 'col-span-2' : 'col-span-1'} block text-xs font-semibold text-slate-600 dark:text-slate-300">
+      <span class="block mb-1">${f.l}${f.req ? ' <span class="text-red-500">*</span>' : ''}</span>${ctl}</label>`;
+  }).join('');
+  $('#modal').classList.add('open');
+  const first = $('#modalFields input, #modalFields textarea, #modalFields select');
+  if (first) first.focus();
+}
+
+function closeModal() { $('#modal').classList.remove('open'); modalCtx = null; }
+
+$('#modalForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!modalCtx) return;
+  const { mod, id } = modalCtx;
+  const def = FIELD_DEFS[mod];
+  const data = {};
+  def.fields.forEach(f => { data[f.k] = ($('#f_' + f.k).value || '').trim(); });
+
+  if (mod === 'settings') {
+    if (data.gasUrl && !isGasUrl(data.gasUrl)) {
+      $('#formError').textContent = 'GAS Web App URL 형식이 올바르지 않습니다. (https://script.google.com/...)'; return;
+    }
+    if (data.gasUrl && !data.gasToken) {
+      $('#formError').textContent = 'GAS 연동 시 API 토큰이 필요합니다. (비워두려면 URL도 비워 로컬 모드로 사용하세요)'; return;
+    }
+    const remoteChanged = data.gasUrl !== config.gasUrl || data.gasToken !== config.gasToken;
+    config.gasUrl = data.gasUrl; config.gasToken = data.gasToken; config.calendarUrl = data.calendarUrl;
+    saveConfig(); closeModal(); updateModeBadge(); renderCalendar();
+    toast('설정이 저장되었습니다');
+    if (remoteChanged) { remoteReady = false; loadAll(true); }
+    return;
+  }
+
+  const miss = def.fields.find(f => f.req && !data[f.k]);
+  if (miss) { $('#formError').textContent = `'${miss.l}' 항목은 필수입니다.`; $('#f_' + miss.k).focus(); return; }
+  if (data.startDate && data.endDate && data.startDate > data.endDate) {
+    $('#formError').textContent = '시작일은 마감일보다 늦을 수 없습니다.'; return;
+  }
+  if (mod === 'sales') data.amount = Math.max(0, Math.round(Number(data.amount) || 0));
+
+  // 중복 제출 방지: 저장 중에는 버튼 비활성화
+  const submitBtn = $('#modalForm button[type="submit"]');
+  submitBtn.disabled = true; submitBtn.classList.add('opacity-60');
+  let ok;
+  try {
+    if (id) ok = await mutate('update', mod, Object.assign({}, data, { id }));
+    else {
+      if (mod === 'tasks') data.status = 'needsAction';
+      ok = await mutate('create', mod, Object.assign({}, data, { id: genId(mod) }));
+    }
+  } finally {
+    submitBtn.disabled = false; submitBtn.classList.remove('opacity-60');
+  }
+  if (ok) { closeModal(); toast(id ? '수정되었습니다' : '추가되었습니다'); }
+});
+
+/* ============================================================
+ * 삭제 확인 팝업
+ * ============================================================ */
+let confirmCb = null;
+function askConfirm(msg, cb) {
+  $('#confirmMsg').textContent = msg;
+  confirmCb = cb;
+  $('#confirm').classList.add('open');
+  $('#confirmNo').focus();
+}
+const closeConfirm = () => { $('#confirm').classList.remove('open'); confirmCb = null; };
+$('#confirmNo').addEventListener('click', closeConfirm);
+$('#confirmYes').addEventListener('click', async () => {
+  const cb = confirmCb;
+  closeConfirm();
+  if (cb) await cb();
+});
+
+/* ============================================================
+ * 테마 (다크모드)
+ * ============================================================ */
+function applyTheme(theme, persist) {
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+  if (persist) localStorage.setItem(LS.theme, theme);
+  const on = 'bg-indigo-600 text-white', off = 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700';
+  $('#themeLight').className = 'px-3 py-1.5 ' + (theme === 'light' ? on : off);
+  $('#themeDark').className = 'px-3 py-1.5 ' + (theme === 'dark' ? on : off);
+}
+
+function updateModeBadge() {
+  const b = $('#modeBadge');
+  if (!isRemote()) {
+    b.textContent = '💾 로컬 모드';
+    b.title = '브라우저 localStorage에 저장 중 (설정에서 GAS URL 입력 시 연동)';
+  } else if (!config.gasToken) {
+    b.textContent = '🔑 토큰 필요';
+    b.title = '설정에서 API 토큰을 입력하세요';
+  } else if (!remoteReady) {
+    b.textContent = '⚠️ 연결 안 됨';
+    b.title = 'GAS 서버에서 데이터를 불러오지 못했습니다';
+  } else {
+    b.textContent = '☁️ Google 연동';
+    b.title = 'GAS Web App과 연동 중';
+  }
+}
+
+/* 설정 화면의 연결 테스트: 저장 전에 입력값으로 서버를 호출해 본다 */
+async function testConnection() {
+  const url = ($('#f_gasUrl').value || '').trim();
+  const token = ($('#f_gasToken').value || '').trim();
+  const err = $('#formError');
+  err.className = 'mt-3 text-sm text-red-500 min-h-[1.25rem]';
+  if (!url || !isGasUrl(url)) { err.textContent = '올바른 GAS Web App URL을 입력하세요.'; return; }
+  if (!token) { err.textContent = 'API 토큰을 입력하세요.'; return; }
+  const btn = $('#testConn');
+  btn.disabled = true; setBusy(true);
+  err.textContent = '연결 확인 중…';
+  try {
+    const d = await gasGet(url, token);
+    const n = k => (d[k] || []).length;
+    err.className = 'mt-3 text-sm text-emerald-600 min-h-[1.25rem]';
+    err.textContent = `✅ 연결 성공 — 프로젝트 ${n('projects')} · 메모 ${n('memos')} · 영업 ${n('sales')} · 태스크 ${n('tasks')}` +
+      ((d.warnings || []).length ? ` (⚠️ ${d.warnings[0]})` : '');
+  } catch (e) {
+    err.textContent = '❌ ' + e.message;
+  } finally {
+    btn.disabled = false; setBusy(false);
+  }
+}
+
+/* ============================================================
+ * 이벤트 위임
+ * ============================================================ */
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el) {
+    if (e.target.id === 'modal') closeModal();
+    if (e.target.id === 'confirm') closeConfirm();
+    return;
+  }
+  const { act, mod, id } = el.dataset;
+  switch (act) {
+    case 'theme': applyTheme(el.dataset.theme, true); break;
+    case 'refresh': loadAll(); break;
+    case 'settings': openModal('settings'); break;
+    case 'add': openModal(mod); break;
+    case 'edit': openModal(mod, id); break;
+    case 'modal-close': closeModal(); break;
+    case 'test-conn': testConnection(); break;
+    case 'cal-mode': config.calMode = el.dataset.mode; saveConfig(); renderCalendar(); break;
+    case 'cal-nav': {
+      const dir = Number(el.dataset.dir);
+      calCursor = dir === 0 ? (() => { const d = new Date(); d.setDate(1); d.setHours(0, 0, 0, 0); return d; })()
+        : new Date(calCursor.getFullYear(), calCursor.getMonth() + dir, 1);
+      renderTaskCalendar();
+      break;
+    }
+    case 'cal-add': openModal('tasks', null, { dueDate: el.dataset.date }); break;
+    case 'cal-toggle': {
+      const key = el.dataset.key;
+      config[key] = config[key] === false; // 기본값(켜짐) ↔ 꺼짐
+      saveConfig(); renderTaskCalendar();
+      break;
+    }
+    case 'del': {
+      const item = state[mod].find(x => String(x.id) === String(id));
+      if (!item) break;
+      askConfirm(`'${item.title}' 항목을 삭제하시겠습니까?\n삭제 후에는 되돌릴 수 없습니다.`, async () => {
+        if (await mutate('delete', mod, { id: item.id })) toast('삭제되었습니다');
+      });
+      break;
+    }
+  }
+});
+
+/* 태스크 완료 토글 (체크박스) */
+document.addEventListener('change', async e => {
+  const el = e.target;
+  if (el.matches('[data-act="task-toggle"]')) {
+    const t = state.tasks.find(x => String(x.id) === el.dataset.id);
+    if (!t) return;
+    const prev = t.status;
+    const status = el.checked ? 'completed' : 'needsAction';
+    // 낙관적 업데이트: 즉시 화면에 반영하고, 서버 저장에 실패하면 되돌린다
+    t.status = status; renderTasks();
+    const ok = await mutate('update', 'tasks', { id: t.id, status });
+    if (!ok) { t.status = prev; renderTasks(); }
+  }
+});
+$('#taskFilter').addEventListener('change', renderTasks);
+
+/* 할 일 빠른 입력 */
+$('#taskForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const title = $('#taskTitle').value.trim();
+  if (!title) { toast('할 일 내용을 입력하세요', 'err'); $('#taskTitle').focus(); return; }
+  const data = {
+    id: genId('tasks'), title, dueDate: $('#taskDue').value || '',
+    // 목록이 비어 있으면 빈 값 → 서버가 기본 목록(@default)에 만든다
+    category: $('#taskCategory').value || (state.taskLists[0] && state.taskLists[0].id) || '',
+    status: 'needsAction'
+  };
+  if (await mutate('create', 'tasks', data)) {
+    $('#taskTitle').value = ''; $('#taskDue').value = '';
+    $('#taskTitle').focus();
+    toast('할 일이 추가되었습니다');
+  }
+});
+
+/* 다른 기기/탭에서 바뀐 내용을 반영: 탭으로 돌아오면(1분 이상 지난 경우) 조용히 새로고침 */
+let lastHidden = 0;
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { lastHidden = Date.now(); return; }
+  const idle = $('#modal').classList.contains('open') || $('#confirm').classList.contains('open');
+  if (isRemote() && config.gasToken && !idle && lastHidden && Date.now() - lastHidden > 60000) loadAll(true);
+});
+
+/* 할 일 달력의 날짜 칸: Enter/Space 로도 추가 창 열기 (키보드 접근성) */
+document.addEventListener('keydown', e => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-act="cal-add"]')) {
+    e.preventDefault();
+    openModal('tasks', null, { dueDate: e.target.dataset.date });
+  }
+});
+
+/* ESC 로 모달/팝업 닫기 */
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if ($('#confirm').classList.contains('open')) closeConfirm();
+  else if ($('#modal').classList.contains('open')) closeModal();
+});
+
+/* ============================================================
+ * 초기화
+ * ============================================================ */
+(function init() {
+  applyTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light', false);
+  const now = new Date();
+  $('#todayLabel').textContent = now.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+  updateModeBadge();
+  renderCalendar();
+  loadAll(true);
+})();
+</script>
+</body>
+</html>
+
+
+
+
+
+
+
+
